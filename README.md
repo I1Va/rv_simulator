@@ -157,12 +157,12 @@ Execute a specific number of cycles:
 ./build/rv_simulator -s 3 --init_state examples/initial_state -f examples/final_state examples/sum.elf
 ```
 
-Upon completion, the simulator saves the final state (PC followed by `x1-x31`) to the specified `final_state` file:
+Upon completion, the simulator saves the final state (PC followed by `x0-x31`) to the specified `final_state` file:
 
 ```text
 0x00010080  # Final PC
-0x00000000  # x1
-0x00000001  # x2
+0x00000000  # x0
+0x00000001  # x1
 ...
 
 ```
