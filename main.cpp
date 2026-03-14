@@ -53,8 +53,10 @@ int main(int argc, char* argv[]) {
         if (sim.load_elf(config.elf_path)) {
             return 1;
         }
-        
-        sim.sim_step();
+    
+        for (size_t i = 0; i < 100; i++) {
+            sim.sim_step();
+        }
         
     } catch (const std::exception& e) {
         std::cerr << "Simulation aborted: " << e.what() << "\n";

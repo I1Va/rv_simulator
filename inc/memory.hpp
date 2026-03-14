@@ -50,6 +50,8 @@ public:
 
     virtual uint8_t  read8(uint64_t a) const = 0;
     virtual void     write8(uint64_t a, uint8_t v) = 0;
+    virtual uint16_t read16(uint64_t a) const = 0;
+    virtual void     write16(uint64_t a, uint16_t v) = 0;
     virtual uint32_t read32(uint64_t a) const = 0 ;
     virtual void     write32(uint64_t a, uint32_t v) = 0;
     virtual uint32_t read_instr32(uint64_t a) const = 0;
@@ -187,6 +189,30 @@ public:
         }
         segment.data[offset] = v;
     }
+    uint16_t read16(uint64_t a) const override {
+        const Segment &segment = get_seg(static_cast<uint32_t>(a), false, false);
+        uint32_t offset = static_cast<uint32_t>(a) - segment.vaddr;
+
+        if (offset + 2 > segment.data.size()) {
+            throw BoundaryFault(a);
+        }
+
+        return static_cast<uint16_t>(segment.data[offset + 0]) |
+            static_cast<uint16_t>(segment.data[offset + 1] << 8);
+    }
+
+    void write16(uint64_t a, uint16_t v) override {
+        Segment &segment = get_seg(static_cast<uint32_t>(a), true, false);
+        uint32_t offset = static_cast<uint32_t>(a) - segment.vaddr;
+
+        if (offset + 2 > segment.data.size()) {
+            throw BoundaryFault(a);
+        }
+
+        segment.data[offset + 0] = static_cast<uint8_t>(v & 0xFF);
+        segment.data[offset + 1] = static_cast<uint8_t>((v >> 8) & 0xFF);
+    }
+
 };
 
 } // namespace rv

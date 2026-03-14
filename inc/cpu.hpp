@@ -27,7 +27,7 @@ class CPU_RV32I : public ICPU {
     std::vector<uint32_t> regs_;
 
 public:
-    CPU_RV32I() = default;
+    CPU_RV32I(): pc_(0), regs_(32) {}
 
     void set_pc(uint64_t pc) override {
         pc_ = static_cast<uint32_t> (pc);

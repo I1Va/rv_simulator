@@ -47,6 +47,7 @@ public:
     void sim_step() {
         try {
             Instruction instruction = decoder_->fetch_and_decode(cpu_->pc(), *mem_.get());
+            // std::cout << "execute : 0x" << std::hex << std::setw(8) << std::setfill('0') << cpu_->pc() << "\n";
             execute(instruction, *cpu_.get(), *mem_.get());
         } 
         catch (const rv::IllegalInstruction32PC& e) {
