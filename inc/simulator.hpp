@@ -26,6 +26,47 @@ public:
         }
     }
 
+    int load_initial_state(const std::string_view init_state_path) {
+        std::ifstream file(init_state_path.data());
+        if (!file.is_open()) {
+            std::cerr << "Error: Could not open state file " << init_state_path << "\n";
+            return -1;
+        }
+
+        std::string val;
+        std::vector<uint64_t> values;
+        bool write_pc = true;
+
+        size_t reg_idx = 0;
+        while (file >> val) {
+            try {
+                if (reg_idx == 0 && val == "entry_point") {
+                    write_pc = false;   
+                } else {
+                    values.push_back(static_cast<uint64_t>(std::stoul(val, nullptr, 0)));
+                }  
+                reg_idx++;
+            } catch (...) {
+                std::cerr << "Error: Invalid numeric value in state file: " << val << "\n";
+                return -1;
+            }
+        }
+
+        if (reg_idx < 32) {
+            std::cerr << "Error: State file too short. Expected 32 values, got " << values.size() << "\n";
+            return -1;
+        }
+
+
+        if (write_pc) cpu_->set_pc(values[0]);
+
+        for (size_t i = 0; i < 32; ++i) {
+            cpu_->write_reg(i, values[i]);
+        }
+
+        return 0;
+    }
+
     int load_elf(const std::string_view elf_path) {
         try {
             Parser loader(elf_path);
