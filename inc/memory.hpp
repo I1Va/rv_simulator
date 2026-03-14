@@ -38,9 +38,6 @@ public:
 };
 
 class IMEM {
-    // it is high abstraction interface, does not take into account memory model details
-    // contain raw bytes of data
-    // alow to read, write
 public:
     virtual void add_segment
     (
@@ -50,10 +47,13 @@ public:
     ) = 0;
 
     virtual ~IMEM() = default;
-    // virtual uint8_t read8(uint64_t a) = 0;
+
+    virtual uint8_t  read8(uint64_t a) const = 0;
+    virtual void     write8(uint64_t a, uint8_t v) = 0;
     virtual uint32_t read32(uint64_t a) const = 0 ;
+    virtual void     write32(uint64_t a, uint32_t v) = 0;
     virtual uint32_t read_instr32(uint64_t a) const = 0;
-    virtual void write32(uint64_t a, uint32_t v) = 0;
+ 
 };
 
 class MEM32 : public IMEM {
@@ -167,6 +167,26 @@ public:
             (static_cast<uint32_t>(segment.data[offset + 2]) << 16) |
             (static_cast<uint32_t>(segment.data[offset + 3]) << 24);
         }
-    };
+
+    uint8_t read8(uint64_t a) const override {
+        const Segment &segment = get_seg(static_cast<uint32_t>(a), false, false);
+        uint32_t offset = static_cast<uint32_t>(a) - segment.vaddr;
+
+        if (offset >= segment.data.size()) {
+            throw BoundaryFault(a);
+        }
+        return segment.data[offset];
+    }
+
+    void write8(uint64_t a, uint8_t v) override {
+        Segment &segment = get_seg(static_cast<uint32_t>(a), true, false);
+        uint32_t offset = static_cast<uint32_t>(a) - segment.vaddr;
+
+        if (offset >= segment.data.size()) {
+            throw BoundaryFault(a);
+        }
+        segment.data[offset] = v;
+    }
+};
 
 } // namespace rv

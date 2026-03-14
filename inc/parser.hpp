@@ -123,8 +123,12 @@ public:
                       << "0x" << std::setw(6) << std::setfill('0') << seg.memsz << "  "
                       << std::setw(6) << std::setfill(' ') << flags << "  "
                       << std::setw(20) << contained_sections
-                      << std::hex << std::setw(2) << static_cast<int>(seg.data[0]) << " " 
-                      << std::setw(2) << static_cast<int>(seg.data[1]) << "..." 
+                      << std::hex 
+                      << std::setw(2) << static_cast<int>(seg.data[0]) << " " 
+                      << std::setw(2) << static_cast<int>(seg.data[1]) << " "
+                      << std::setw(2) << static_cast<int>(seg.data[2]) << " "
+                      << std::setw(2) << static_cast<int>(seg.data[3])
+                      << "..." 
                       << std::dec << std::endl;
         }
     }

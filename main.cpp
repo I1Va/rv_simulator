@@ -50,11 +50,11 @@ int main(int argc, char* argv[]) {
                   << " (ISA: " << config.isa << ")\n";
 
         rv::Simulator sim(config.isa);
-        if (!sim.load_elf(config.elf_path)) {
+        if (sim.load_elf(config.elf_path)) {
             return 1;
         }
-
-        // sim.run();
+        
+        sim.sim_step();
         
     } catch (const std::exception& e) {
         std::cerr << "Simulation aborted: " << e.what() << "\n";

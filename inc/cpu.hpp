@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cassert>
+#include <vector>
 
 namespace rv
 {

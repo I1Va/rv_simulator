@@ -29,7 +29,6 @@ public:
     int load_elf(const std::string_view elf_path) {
         try {
             Parser loader(elf_path);
-            loader.dump();
 
             cpu_->set_pc(loader.get_entry_point());
 
@@ -45,21 +44,29 @@ public:
         }
     }
 
-    void sim_run() {
-        // Instruction instr = decoder_.fetch_and_decode(cpu_, mem_);
-        
+    void sim_step() {
+        try {
+            Instruction instruction = decoder_->fetch_and_decode(cpu_->pc(), *mem_.get());
+            execute(instruction, *cpu_.get(), *mem_.get());
+        } 
+        catch (const rv::IllegalInstruction32PC& e) {
+            std::cerr << "[CPU ERROR] " << e.what() << std::endl;
+            return;
+        } 
+        catch (const rv::IllegalInstruction32& e) {
+            std::cerr << "[DECODE ERROR] " << e.what() << " at PC: 0x" 
+                    << std::hex << cpu_->pc() << std::endl;
+            return;
+        } 
+        catch (const rv::MemoryException& e) {
+            std::cerr << "[MEM ERROR] " << e.what() << std::endl;
+            return;
+        } 
 
-        // fetch(cpu_.pc());
-        // Instrction
+        catch (...) {
+            throw; 
+        }
     }
-
-    // launch parser
-    // contain CPU, MEM interfaces
-    // iterate though instrcutions, execute them and update CPU, MEM state
-    // can dump inner state  
-private:
-
-
 };
 
 } // namespace rv 
