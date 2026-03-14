@@ -5,6 +5,7 @@
 #include "cpu.hpp"
 #include "memory.hpp"
 #include "instruction.hpp"
+#include "decoder.hpp"
 
 namespace rv 
 {
@@ -12,15 +13,14 @@ namespace rv
 class Simulator {
     std::unique_ptr<ICPU> cpu_;
     std::unique_ptr<IMEM> mem_;
-    // std::unique_ptr<IDecoder> decoder;
+    std::unique_ptr<IDecoder> decoder_;
 
 public:
     Simulator(std::string_view isa_string) {
-
         if (isa_string == "rv32i") {
             cpu_ = std::make_unique<CPU_RV32I>();
             mem_ = std::make_unique<MEM32>();
-            // decoder = std::make_unique<Decoder_RV32I>();
+            decoder_ = std::make_unique<Decoder_RV32I>();
         } else {
             throw std::runtime_error("Unknown ISA configuration");
         }
@@ -46,6 +46,10 @@ public:
     }
 
     void sim_run() {
+        // Instruction instr = decoder_.fetch_and_decode(cpu_, mem_);
+        
+
+        // fetch(cpu_.pc());
         // Instrction
     }
 
@@ -53,6 +57,9 @@ public:
     // contain CPU, MEM interfaces
     // iterate though instrcutions, execute them and update CPU, MEM state
     // can dump inner state  
+private:
+
+
 };
 
 } // namespace rv 
