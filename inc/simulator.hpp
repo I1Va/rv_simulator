@@ -40,7 +40,7 @@ public:
         size_t reg_idx = 0;
         while (file >> val) {
             try {
-                if (reg_idx == 0 && val == "entry_point") {
+                if (reg_idx == 0 && val == "@") {
                     write_pc = false;   
                 } else {
                     values.push_back(static_cast<uint64_t>(std::stoul(val, nullptr, 0)));
@@ -52,8 +52,8 @@ public:
             }
         }
 
-        if (reg_idx < 32) {
-            std::cerr << "Error: State file too short. Expected 32 values, got " << values.size() << "\n";
+        if (reg_idx < 33) {
+            std::cerr << "Error: State file too short. Expected 33 values, got " << values.size() << "\n";
             return -1;
         }
 
@@ -164,6 +164,59 @@ public:
 
     void cpu_dump() {
         cpu_->dump();
+    }
+    
+    void interactive_mode() {
+        std::string line;
+        std::cout << "Interactive Mode: type 'h' for help\n";
+
+        while (true) {
+            std::cout << "sim> ";
+            if (!std::getline(std::cin, line) || line == "q" || line == "exit") break;
+            if (line.empty()) continue;
+
+            if (line == "h" || line == "help") {
+                std::cout << "Commands:\n"
+                        << "  s [n]       Step n instructions (default 1)\n"
+                        << "  r           Dump registers\n"
+                        << "  m <addr>    Dump memory at address\n"
+                        << "  p <addr>    Set PC to address\n"
+                        << "  q           Quit\n";
+            } 
+            else if (line[0] == 's') {
+                int steps = 1;
+                if (line.size() > 2) steps = std::stoi(line.substr(2));
+                run(steps);
+            } 
+            else if (line == "r") {
+                cpu_dump();
+            } 
+            else if (line[0] == 'm') {
+                try {
+                    uint32_t addr = std::stoul(line.substr(2), nullptr, 0);
+                    
+                    uint32_t word0 = mem_->read32(addr);
+                    uint32_t word1 = mem_->read32(addr + 4);
+
+                    std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << addr << ":  "
+                            << "0x" << std::setw(8) << std::setfill('0') << word1 
+                            << std::setw(8) << std::setfill('0') << word0 
+                            << std::dec << "\n";
+                            
+                } catch (const std::exception& e) {
+                    std::cout << "Error: " << e.what() << "\n";
+                }
+            } 
+            else if (line[0] == 'p') {
+                try {
+                    uint32_t addr = std::stoul(line.substr(2), nullptr, 0);
+                    cpu_->set_pc(addr);
+                    std::cout << "PC set to: 0x" << std::hex << addr << std::dec << "\n";
+                } catch (...) { 
+                    std::cout << "Invalid address format\n"; 
+                }
+            }
+        }
     }
 };
 

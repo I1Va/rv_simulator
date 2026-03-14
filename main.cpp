@@ -8,6 +8,7 @@ struct Config {
     std::string elf_path = "";
     std::string init_state_path = "";
     std::string final_state_path = "";
+    bool interactive = false;
     int steps = 10;
 };
 
@@ -20,6 +21,7 @@ std::string get_config_str(Config &config) {
         << "  ELF Path     : " << (config.elf_path.empty() ? "None" : config.elf_path) << "\n"
         << "  Init State   : " << (config.init_state_path.empty() ? "Disabled" : config.init_state_path) << "\n"
         << "  Step Limit   : " << config.steps << "\n"
+        << "  Interactive  : " << config.interactive << "\n"
         << "========================================";
     return ss.str();
 }
@@ -41,6 +43,8 @@ int main(int argc, char* argv[]) {
        ->check(CLI::ExistingFile);
 
     app.add_option("--final_state,-f", config.final_state_path, "Path to final PC and registers file");
+
+    app.add_flag("--interactive", config.interactive, "Enable interactive mode");
 
     try {
         app.parse(argc, argv);
@@ -65,8 +69,12 @@ int main(int argc, char* argv[]) {
 
         std::cout << "Starting simulation: \n";
         std::cout << get_config_str(config) << "\n";
-    
-        sim.run(config.steps);
+        
+        if (config.interactive) {
+            sim.interactive_mode();
+        } else {
+            sim.run(config.steps);
+        }
 
         if (!config.final_state_path.empty()) {
             if (sim.dump_cpu_state("examples/final_state") != 0) {
