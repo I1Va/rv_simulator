@@ -245,49 +245,61 @@ TEST(UpperImmediate, AUIPC) {
 // --- Loads & Stores Tests---
 TEST(Memory, LoadStoreByte) {
     auto sim = create_sim();
-    uint32_t addr = 256; // Data segment start
+    uint32_t base_addr = 256; // Start of data segment
+    
+    // X5 holds the data we want to write
     sim.write_reg(X5, 0xABCDEF88);
+    // X1 holds the pointer to our memory
+    sim.write_reg(X1, base_addr);
     
-    // Store Byte
-    sim.execute_instr(rv::Instruction(rv::SB{X5, X0, (int32_t)addr}));
+    // Store Byte: SB rs2, imm(rs1) -> SB X5, 0(X1)
+    // Constructor: SB{rs1, rs2, imm}
+    sim.execute_instr(rv::Instruction(rv::SB{X1, X5, 0}));
     
-    // Load Byte (Signed - should sign extend 0x88 to 0xFFFFFF88)
-    sim.execute_instr(rv::Instruction(rv::LB{X6, X0, (int32_t)addr}));
+    // Load Byte (Signed): LB rd, imm(rs1) -> LB X6, 0(X1)
+    // Constructor: LB{rd, rs1, imm}
+    sim.execute_instr(rv::Instruction(rv::LB{X6, X1, 0}));
     EXPECT_EQ(sim.read_reg(X6), 0xFFFFFF88);
 
-    // Load Byte Unsigned (Zero extend)
-    sim.execute_instr(rv::Instruction(rv::LBU{X7, X0, (int32_t)addr}));
+    // Load Byte Unsigned: LBU rd, imm(rs1) -> LBU X7, 0(X1)
+    sim.execute_instr(rv::Instruction(rv::LBU{X7, X1, 0}));
     EXPECT_EQ(sim.read_reg(X7), 0x00000088);
 }
 
 TEST(Memory, LoadStoreWord) {
     auto sim = create_sim();
-    uint32_t addr = 260;
+    uint32_t base_addr = 260;
+    
     sim.write_reg(X10, 0xDEADBEEF);
+    sim.write_reg(X1, base_addr);
 
-    sim.execute_instr(rv::Instruction(rv::SW{X10, X0, (int32_t)addr}));
-    sim.execute_instr(rv::Instruction(rv::LW{X11, X0, (int32_t)addr}));
+    // SW rs2, imm(rs1) -> SW X10, 0(X1)
+    sim.execute_instr(rv::Instruction(rv::SW{X1, X10, 0}));
+    
+    // LW rd, imm(rs1) -> LW X11, 0(X1)
+    sim.execute_instr(rv::Instruction(rv::LW{X11, X1, 0}));
     
     EXPECT_EQ(sim.read_reg(X11), 0xDEADBEEF);
 }
 
 TEST(Memory, HalfWordLoadStore) {
     auto sim = create_sim();
-    uint32_t addr = 260;
-    sim.write_reg(X5, 0x00008001); // 0x8001 has bit 15 set
+    uint32_t base_addr = 264;
+    
+    sim.write_reg(X5, 0x8001); // Bit 15 is set
+    sim.write_reg(X1, base_addr);
 
-    // Store Half-word
-    sim.execute_instr(rv::Instruction(rv::SH{X5, X0, (int32_t)addr}));
+    // SH X5, 0(X1)
+    sim.execute_instr(rv::Instruction(rv::SH{X1, X5, 0}));
 
-    // LH: Signed load should sign-extend bit 15 to bits 16-31
-    sim.execute_instr(rv::Instruction(rv::LH{X6, X0, (int32_t)addr}));
+    // LH (Signed) -> should result in 0xFFFF8001
+    sim.execute_instr(rv::Instruction(rv::LH{X6, X1, 0}));
     EXPECT_EQ(sim.read_reg(X6), 0xFFFF8001);
 
-    // LHU: Unsigned load should zero-extend
-    sim.execute_instr(rv::Instruction(rv::LHU{X7, X0, (int32_t)addr}));
+    // LHU (Unsigned) -> should result in 0x00008001
+    sim.execute_instr(rv::Instruction(rv::LHU{X7, X1, 0}));
     EXPECT_EQ(sim.read_reg(X7), 0x00008001);
 }
-
 // --- Branch Tests---
 
 TEST(Branch, ComparisonLogic) {

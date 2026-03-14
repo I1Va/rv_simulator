@@ -196,11 +196,11 @@ void execute(JALR i, ICPU &c, IMEM &) {
 
 // --- Pseudo Instructions ---
 void execute(LUI i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, (uint32_t)i.imm);
+    c.write_reg(i.rd, (uint32_t)i.imm << 12); 
     c.set_pc(c.pc() + 4);
 }
 void execute(AUIPC i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, (uint32_t)c.pc() + i.imm);
+    c.write_reg(i.rd, (uint32_t)c.pc() + ((uint32_t)i.imm << 12));
     c.set_pc(c.pc() + 4);
 }
 void execute(LI i, ICPU &c, IMEM &) {
