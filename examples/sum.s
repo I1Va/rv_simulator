@@ -13,5 +13,8 @@ loop:
     j loop          # jump back to loop
 
 end:
-    nop          
+    li a7, 93       # System call ID for 'exit'
+    li a0, 0        # Return code 0 (success)
+    ecall           # Call the operating system/emulator to stop         
+    
     

@@ -2,7 +2,10 @@
 
 #include <cstdint>
 #include <cassert>
+#include <iomanip>
+#include <string>
 #include <vector>
+#include <iostream>
 
 namespace rv
 {
@@ -19,12 +22,20 @@ public:
 
     virtual void set_pc(uint64_t pc) = 0;
     virtual uint64_t pc() const = 0;
+    virtual void dump() const = 0;
     // virtual void raise_exception(Exception e) = 0;
 };
 
 class CPU_RV32I : public ICPU {
     uint32_t pc_;
     std::vector<uint32_t> regs_;
+
+    const std::vector<std::string> abi_names_ = {
+        "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
+        "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
+        "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
+        "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
+    };
 
 public:
     CPU_RV32I(): pc_(0), regs_(32) {}
@@ -48,7 +59,28 @@ public:
         regs_[idx] = static_cast<uint32_t>(val);
     }
 
-    // current RV32I CPU implementation
+    void dump() const {
+        std::cout << " pc       " 
+                << std::hex << std::setw(8) << std::setfill('0') << pc_ 
+                << std::dec << "\n";
+
+        for (int i = 0; i < 32; ++i) {
+            std::string abi = "x" + std::to_string(i) + "/" + abi_names_[i];
+            
+            std::cout << " ";
+
+            std::cout << std::left << std::setw(8) << std::setfill(' ') << abi << " ";
+            
+            std::cout << std::right << std::hex << std::setw(8) << std::setfill('0') << regs_[i];
+
+            if ((i + 1) % 4 == 0) {
+                std::cout << "\n";
+            } else {
+                std::cout << " ";
+            }
+        }
+        std::cout << std::dec << std::setfill(' ');
+    }
 };
 
 

@@ -76,7 +76,14 @@ public:
         }  
 
         try {
-            return decode(instr_bits);
+            Instruction instruction = decode(instr_bits);
+            std::cout << "----------------\n";
+            std::cout << "IN: \n";
+            std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << addr << ":  "
+                    << std::setw(8) << instr_bits << "      " 
+                    << std::left << std::setw(24) << std::setfill(' ') << name(instruction) 
+                    << operands(instruction) << "\n\n";
+            return instruction;
         } catch (const IllegalInstruction32& e) {
             throw IllegalInstruction32PC(e.bits(), addr); 
         }   

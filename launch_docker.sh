@@ -22,4 +22,12 @@ docker run \
 
 echo "Container started. Entering shell with RISC-V tools in PATH..."
 
-docker exec -it rv_tools_image_cont_example bash -c "export PATH=\$PATH:/opt/sc-dt/riscv-gcc/bin && bash"
+docker exec -it rv_tools_image_cont_example bash -c "export PATH=\$PATH:/opt/sc-dt/riscv-gcc/bin:/opt/sc-dt/tools/bin && bash"
+
+
+# commands:
+# riscv64-unknown-elf-objdump -d sum.elf
+# riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 -nostdlib -o sum.elf sum.s
+
+# qemu-riscv32 -d cpu,in_asm -one-insn-per-tb -D qemu_trace.log sum.elf
+

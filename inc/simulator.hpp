@@ -44,10 +44,17 @@ public:
         }
     }
 
-    void sim_step() {
+    void run(const size_t steps) {
+        for (size_t i = 0; i < steps; i++) {
+            step();
+        }
+    }
+
+    void step() {
         try {
             Instruction instruction = decoder_->fetch_and_decode(cpu_->pc(), *mem_.get());
-            // std::cout << "execute : 0x" << std::hex << std::setw(8) << std::setfill('0') << cpu_->pc() << "\n";
+            cpu_dump();
+        
             execute(instruction, *cpu_.get(), *mem_.get());
         } 
         catch (const rv::IllegalInstruction32PC& e) {
@@ -67,6 +74,10 @@ public:
         catch (...) {
             throw; 
         }
+    }
+
+    void cpu_dump() {
+        cpu_->dump();
     }
 };
 
