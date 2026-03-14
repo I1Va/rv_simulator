@@ -1,5 +1,7 @@
 #!/bin/bash
 
 cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-cmake --build build
+cmake --build build -j 8
 # ./build/rv_simulator
+
+# ./build.sh && ./build/rv_simulator -s 1 -i examples/initial_state -f examples/final_state examples/sum.elf

@@ -67,6 +67,21 @@ public:
         return 0;
     }
 
+    int dump_cpu_state(const std::string_view dump_path) {
+        std::ofstream file(dump_path.data());
+        if (!file.is_open()) {
+            std::cerr << "Error: Could not open cpu state dump file " << dump_path << "\n";
+            return -1;
+        }
+
+        file << "0x" << std::hex << std::setw(8) << std::setfill('0') << cpu_->pc() << "\n";
+        for (size_t i = 0; i < 32; i++) {
+            file << "0x" << std::hex << std::setw(8) << std::setfill('0') << cpu_->read_reg(i) << "\n";
+        }
+
+        return 0;
+    }
+
     int load_elf(const std::string_view elf_path) {
         try {
             Parser loader(elf_path);
