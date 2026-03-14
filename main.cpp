@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Starting simulation: " << config.elf_path 
                   << " (ISA: " << config.isa << ")\n";
 
-        Simulator sim(config.isa);
+        rv::Simulator sim(config.isa);
         if (!sim.load_elf(config.elf_path)) {
             return 1;
         }

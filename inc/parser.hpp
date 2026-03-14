@@ -9,6 +9,9 @@
 #include <string.h>
 #include <iomanip>
 
+namespace rv 
+{
+ 
 class Parser {
 public:
     struct SegmentInfo {
@@ -127,3 +130,5 @@ public:
     }
 
 };
+
+} // namespace rv

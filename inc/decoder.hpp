@@ -1,7 +1,7 @@
 #pragma once
 
-class Instrution;
-
+namespace rv
+{
 
 class IDecoder {
     // decoder interface
@@ -16,4 +16,5 @@ class RV32Decoder : IDecoder {
     // (for example, if C extension is not included and 2 byte instrcution is met, it will return exception)    
 };
 
+} // namespace rv
 

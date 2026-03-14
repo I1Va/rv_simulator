@@ -2,4 +2,4 @@
 
 cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake --build build
-./build/rv_simulator
+# ./build/rv_simulator

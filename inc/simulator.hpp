@@ -4,6 +4,10 @@
 #include "parser.hpp"
 #include "cpu.hpp"
 #include "memory.hpp"
+#include "instruction.hpp"
+
+namespace rv 
+{
 
 class Simulator {
     std::unique_ptr<ICPU> cpu_;
@@ -29,12 +33,11 @@ public:
 
             cpu_->set_pc(loader.get_entry_point());
 
-            // for (const auto& seg : loader.get_segments()) {
-            //     // We'll implement this 'add_segment' in your MEM class next
-            //     mem_.add_segment(seg.vaddr, seg.memsz, seg.data, seg.r, seg.w, seg.x);
-            // }
+            for (const auto& seg : loader.get_segments()) {
+                mem_->add_segment(seg.vaddr, seg.memsz, seg.r, seg.w, seg.x, seg.data);
+            }
 
-            return 0; // Success
+            return 0; 
         } 
         catch (const std::exception& e) {
             std::cerr << "Loader Error: " << e.what() << std::endl;
@@ -42,8 +45,14 @@ public:
         }
     }
 
+    void sim_run() {
+        // Instrction
+    }
+
     // launch parser
     // contain CPU, MEM interfaces
     // iterate though instrcutions, execute them and update CPU, MEM state
     // can dump inner state  
 };
+
+} // namespace rv 
