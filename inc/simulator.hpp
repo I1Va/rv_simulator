@@ -84,12 +84,13 @@ public:
 
     int load_elf(const std::string_view elf_path) {
         try {
-            Parser loader(elf_path);
+            Parser parser;
+            parser.load_elf(elf_path);
 
-            cpu_->set_pc(loader.get_entry_point());
+            cpu_->set_pc(parser.get_entry_point());
 
-            for (const auto& seg : loader.get_segments()) {
-                mem_->add_segment(seg.vaddr, seg.memsz, seg.r, seg.w, seg.x, seg.data);
+            for (const auto& seg : parser.get_segments()) {
+                mem_->add_segment(seg);
             }
 
             return 0; 
@@ -99,6 +100,16 @@ public:
             return 1;
         }
     }
+
+    void execute_instr(const Instruction &instruction) {
+        execute(instruction, *cpu_.get(), *mem_.get());
+    }
+
+    void set_pc(const uint64_t pc) { cpu_->set_pc(pc); }
+    void add_segment
+    (
+        const Parser::SegmentInfo &segment_info
+    ) { mem_->add_segment(segment_info); }
 
     void run(const size_t steps) {
         for (size_t i = 0; i < steps; i++) {
@@ -130,6 +141,25 @@ public:
         catch (...) {
             throw; 
         }
+    }
+
+    uint64_t pc() {
+       return cpu_->pc();
+    }
+    
+    std::vector<uint64_t> regs() {
+        std::vector<uint64_t> regs(32);
+        for (size_t i = 0; i < 32; i++) {
+            regs[i] = cpu_->read_reg(i);
+        }
+        return regs;
+    }
+
+    void write_reg(const uint64_t idx, const uint64_t value) {
+        cpu_->write_reg(idx, value);
+    }
+    uint64_t read_reg(const uint64_t idx) const {
+        return cpu_->read_reg(idx);
     }
 
     void cpu_dump() {

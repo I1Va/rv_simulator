@@ -47,7 +47,7 @@ class Decoder_RV32I : public IDecoder {
 public:
     Decoder_RV32I() = default;
 
-    Instruction decode(uint32_t bits) const {
+    Instruction decode32(uint32_t bits) const {
         uint8_t opcode = bits & 0x7F;
 
         switch (opcode) {
@@ -76,7 +76,7 @@ public:
         }  
 
         try {
-            Instruction instruction = decode(instr_bits);
+            Instruction instruction = decode32(instr_bits);
             std::cout << "----------------\n";
             std::cout << "IN: \n";
             std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << addr << ":  "

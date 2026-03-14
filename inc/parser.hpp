@@ -48,7 +48,9 @@ private:
     }
 
 public:
-    Parser(const std::string_view elf_path) {
+    Parser() = default;
+
+    void load_elf(const std::string_view elf_path) {
         std::ifstream file(elf_path.data(), std::ios::binary);
         if (!file.is_open()) {
             throw std::runtime_error("Failed to open ELF file: " + std::string(elf_path));
@@ -98,7 +100,6 @@ public:
 
     void dump() const {
         std::cout << "\n=== ELF Parser Dump ===" << std::endl;
-        // ... (your existing header code) ...
         std::cout << std::left << std::setw(12) << "VirtAddr" 
                   << std::setw(10) << "MemSize" 
                   << std::setw(8) << "Flags" 
@@ -107,7 +108,6 @@ public:
         std::cout << "-----------------------------------------------------------------------" << std::endl;
 
         for (const auto& seg : segments_) {
-            // Find which sections fall inside this segment's range
             std::string contained_sections = "";
             for (const auto& [name, addr] : section_names_) {
                 if (addr >= seg.vaddr && addr < (seg.vaddr + seg.memsz)) {

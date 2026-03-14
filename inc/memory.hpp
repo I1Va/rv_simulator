@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utility.hpp"
+#include "parser.hpp"
 
 namespace rv 
 {
@@ -39,12 +40,7 @@ public:
 
 class IMEM {
 public:
-    virtual void add_segment
-    (
-        uint64_t addr, uint64_t size, 
-        bool r, bool w, bool x, 
-        const std::vector<uint8_t>& init_data
-    ) = 0;
+    virtual void add_segment(const Parser::SegmentInfo &segment_info) = 0;
 
     virtual ~IMEM() = default;
 
@@ -103,23 +99,18 @@ class MEM32 : public IMEM {
 public:
     MEM32() = default;
 
-    void add_segment
-    (
-        uint64_t addr, uint64_t size, 
-        bool r, bool w, bool x, 
-        const std::vector<uint8_t>& init_data
-    ) override {
+    void add_segment(const Parser::SegmentInfo &segment_info) override {
         segments.emplace_back(
             Segment
             {
-                static_cast<uint32_t>(addr),
-                static_cast<uint32_t>(size),
-                std::move(init_data),
-                r, w, x
+                static_cast<uint32_t>(segment_info.vaddr),
+                static_cast<uint32_t>(segment_info.memsz),
+                std::move(segment_info.data),
+                segment_info.r, segment_info.w, segment_info.x
             }
         );
-        if (segments.back().data.size() < size) {
-            segments.back().data.resize(size, 0);
+        if (segments.back().data.size() < segment_info.filesz) {
+            segments.back().data.resize(segment_info.filesz, 0);
         }
     }
 
