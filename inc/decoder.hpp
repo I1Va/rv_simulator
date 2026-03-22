@@ -60,6 +60,7 @@ public:
             case 0x37: return decode_U(bits, true);
             case 0x17: return decode_U(bits, false); 
             case 0x6F: return decode_J(bits);
+            case 0xF:  return decode_MiscMem(bits);
             case 0x73: return decode_System(bits);
             default: throw IllegalInstruction32(bits);
         }
@@ -194,13 +195,25 @@ private:
     }
 
     Instruction decode_System(uint32_t b) const {
-        std::cerr << "system instrctuions are not supported\n";
-        throw IllegalInstruction32(b);
+        uint32_t funct12 = (b >> 20) & 0xFFF;
+        uint32_t funct3  = (b >> 12) & 0x7;
+        if (funct3 == 0) {
+            if (funct12 == 0x000) return Instruction(ECALL());
+            if (funct12 == 0x001) return Instruction(EBREAK());
+        }
 
-        // if ((b >> 20) == 0x000) return Instruction(ECALL{});
-        // if ((b >> 20) == 0x001) return Instruction(EBREAK{});
-        // throw IllegalInstruction32(b);
+        throw IllegalInstruction32(b);
     }
+    Instruction decode_MiscMem(uint32_t b) const {
+        uint32_t funct3 = (b >> 12) & 0x7;
+
+        switch (funct3) {
+            case 0x0: return Instruction(FENCE()); 
+            case 0x1: return Instruction(FENCE_I());
+            default: throw IllegalInstruction32(b);
+        }
+    }
+
 };
 
 } // namespace rv

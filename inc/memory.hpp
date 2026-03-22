@@ -1,6 +1,8 @@
 #pragma once
 
 #include <unordered_map>
+#include <map>
+#include <format>
 #include <bit>
 #include "RV32I.hpp"
 
@@ -73,7 +75,6 @@ public:
     virtual uint32_t read32(uint64_t addr) = 0 ;
     virtual void     write32(uint64_t addr, uint32_t v) = 0;
     virtual uint32_t read_instr32(uint64_t addr) = 0;
- 
 };
 
 class MEM32 : public IMEM {
@@ -92,10 +93,10 @@ class MEM32 : public IMEM {
 private:
     Segment& get_seg(uint32_t addr, bool r, bool w, bool x) {
         uint32_t tag = addr / alignment_;
-        auto segment_it = segments_.find(tag); 
 
-        if (segment_it == segments_.end()) create_page(tag, r, w, x);
-
+        create_page(tag, r, w, x);
+        
+        auto segment_it = segments_.find(tag);
         if (r && !segment_it->second.r) throw AccessFault(addr);
         if (w && !segment_it->second.w) throw AccessFault(addr);
         if (x && !segment_it->second.x) throw AccessFault(addr);
@@ -103,8 +104,7 @@ private:
         return segment_it->second;
     }
 
-    void create_page(uint32_t addr, bool r, bool w, bool x) {
-        uint32_t tag = addr / alignment_;
+    void create_page(uint32_t tag, bool r, bool w, bool x) {
         if (exist_tag(tag)) return;
         Segment segment = 
         {
@@ -114,8 +114,26 @@ private:
             .w = w,
             .x = x
         };
-    
         segments_[tag] = std::move(segment);
+    }
+
+    Parser::SegmentInfo get_alligned_segment(const Parser::SegmentInfo &inp_segment_info) {
+        uint32_t aligned_vaddr = inp_segment_info.vaddr & ~(alignment_ - 1);
+        uint32_t offset = inp_segment_info.vaddr - aligned_vaddr;
+        std::vector<uint8_t> padded_data(inp_segment_info.data.size() + offset, 0);
+
+        std::copy(inp_segment_info.data.begin(), inp_segment_info.data.end(), padded_data.begin() + offset);
+        Parser::SegmentInfo segment_info = 
+        {
+            .vaddr = aligned_vaddr,
+            .memsz = offset + inp_segment_info.memsz,
+            .filesz = offset + inp_segment_info.filesz,
+            .data = std::move(padded_data),
+            .r = inp_segment_info.r,
+            .w = inp_segment_info.w,
+            .x = inp_segment_info.x
+        };
+        return segment_info;
     }
 
 public:
@@ -123,10 +141,8 @@ public:
 
     bool exist_tag(uint32_t tag) const { return segments_.find(tag) != segments_.end(); }
 
-    void add_segment(const Parser::SegmentInfo &segment_info) override {
-        if (segment_info.vaddr % alignment_ != 0) {
-            throw SegmentAddressMisaligned(segment_info.vaddr);
-        }
+    void add_segment(const Parser::SegmentInfo &inp_segment_info) override {
+        Parser::SegmentInfo segment_info = get_alligned_segment(inp_segment_info);
     
         uint32_t start_tag = segment_info.vaddr / alignment_;
         uint32_t end_tag = start_tag + (segment_info.memsz + alignment_ - 1) / alignment_;
@@ -214,7 +230,7 @@ public:
     }
 
     void write8(uint64_t addr, uint8_t v) override {
-        Segment &segment = get_seg(static_cast<uint32_t>(addr), true, false, false);
+        Segment &segment = get_seg(static_cast<uint32_t>(addr), false, true, false);
         uint32_t offset = static_cast<uint32_t>(addr) - segment.tag * alignment_;
 
         if (offset >= segment.data.size()) {
@@ -245,6 +261,45 @@ public:
 
         segment.data[offset + 0] = static_cast<uint8_t>(v & 0xFF);
         segment.data[offset + 1] = static_cast<uint8_t>((v >> 8) & 0xFF);
+    }
+
+    void dump_segments() const {
+    std::map<uint32_t, const Segment*> sorted_segments;
+    for (const auto& [tag, seg] : segments_) {
+        sorted_segments[tag] = &seg;
+    }
+
+    std::cout << "\n======================== MEMORY SEGMENT DUMP ========================\n";
+    std::cout << std::format("{:<12} | {:<12} | {:<6} | {:<8} | {:<10}\n", 
+                            "Start VAddr", "End VAddr", "Prot", "Tag", "Size(Hex)");
+    std::cout << std::string(65, '-') << "\n";
+
+    for (const auto& [tag, seg] : sorted_segments) {
+        uint32_t start_vaddr = tag * alignment_;
+        uint32_t end_vaddr = start_vaddr + static_cast<uint32_t>(seg->data.size());
+
+        std::string prot = std::format("{}{}{}", 
+                                      seg->r ? 'r' : '-', 
+                                      seg->w ? 'w' : '-', 
+                                      seg->x ? 'x' : '-');
+
+        std::cout << std::format("0x{:08x}   0x{:08x}   {:<6}   0x{:05x}   0x{:x}\n", 
+                                start_vaddr, end_vaddr, prot, tag, seg->data.size());
+        
+        dump_hex_preview(seg->data);
+    }
+    std::cout << "=====================================================================\n" << std::endl;
+}
+
+    void dump_hex_preview(const std::vector<uint8_t>& data) const {
+        if (data.empty()) return;
+        std::cout << "  Preview: ";
+        size_t preview_len = std::min<size_t>(data.size(), 200);
+        for (size_t i = 0; i < preview_len; ++i) {
+            std::cout << std::format("{:02x} ", data[i]);
+        }
+        if (data.size() > 16) std::cout << "...";
+        std::cout << "\n\n";
     }
 };
 

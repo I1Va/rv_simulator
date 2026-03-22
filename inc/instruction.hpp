@@ -56,6 +56,10 @@ enum class InstructionType {
 
     // --- Pseudo Instructions ---
     LI,
+
+    // --- Synchronization ---
+    FENCE,
+    FENCE_I
 };
 
 struct Instruction {
@@ -151,6 +155,19 @@ inline Instruction EBREAK() {
     result.type = InstructionType::EBREAK;
     return result;
 }
+
+inline Instruction FENCE_I() {
+    Instruction result = {};
+    result.type = InstructionType::FENCE_I;
+    return result;
+}
+
+inline Instruction FENCE() {
+    Instruction result = {};
+    result.type = InstructionType::FENCE;
+    return result;
+}
+
 
 std::string get_instr_name(Instruction &instr);
 std::string get_instr_operands(Instruction &instr);

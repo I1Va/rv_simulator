@@ -115,6 +115,11 @@ public:
     }
 
     void step() {
+        if (!cpu_->is_running()) {
+            std::cout << "[SIMULATOR] no program is running\n";
+            return;
+        }
+    
         try {
             Instruction instruction = cpu_->fetch_and_decode(cpu_->pc(), *mem_.get()); 
             cpu_dump();
@@ -159,7 +164,7 @@ public:
         return cpu_->read_reg(idx);
     }
 
-    void cpu_dump() {
+    void cpu_dump() const {
         cpu_->dump();
     }
     
@@ -213,6 +218,8 @@ public:
                     std::cout << "Invalid address format\n"; 
                 }
             }
+
+            if (!cpu_->is_running()) break;
         }
     }
 };

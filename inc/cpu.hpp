@@ -15,16 +15,30 @@
 namespace rv
 {
 
+class UnknownSyscall : public std::runtime_error {
+public:
+    explicit UnknownSyscall(uint32_t syscall_num) 
+        : std::runtime_error(std::format("Unknown or unsupported syscall: a7 = {}", syscall_num)),
+          syscall_num_(syscall_num) 
+    {}
+
+    uint32_t get_syscall_num() const noexcept { return syscall_num_; }
+
+private:
+    uint32_t syscall_num_;
+};
+    
+
 class ICPU {
 public:    
     virtual uint64_t read_reg(uint8_t idx) const = 0;
     virtual void write_reg(uint8_t idx, uint64_t val) = 0;
-
     virtual void set_pc(uint64_t pc) = 0;
     virtual uint64_t pc() const = 0;
     virtual void dump() const = 0;
     virtual void execute(const Instruction &i, IMEM &m) = 0;
     virtual Instruction fetch_and_decode(uint64_t addr, IMEM &mem) const = 0;
+    virtual bool is_running() const = 0;
 
     // virtual void raise_exception(Exception e) = 0;
 };
@@ -33,6 +47,9 @@ class CPU_RV32I : public ICPU {
     uint32_t pc_;
     std::vector<uint32_t> regs_;
     std::unique_ptr<IDecoder> decoder_;
+    bool is_running_ = true;
+
+    uint8_t buffer_[BUFSIZ] = {};
 
 public:
     CPU_RV32I(): pc_(0), regs_(32) {
@@ -61,6 +78,8 @@ public:
         if (idx == 0) return;
         regs_[idx] = static_cast<uint32_t>(val);
     }
+
+    bool is_running() const override { return is_running_; }
 
     void dump() const {
         std::cout << " pc       " 
@@ -237,7 +256,7 @@ public:
                 set_pc(pc() + 4);
                 break;
             case InstructionType::AUIPC:
-                write_reg(i.rd, (uint32_t)pc() + ((uint32_t)i.imm << 12));
+                write_reg(i.rd, (uint32_t)pc() + (uint32_t)i.imm);
                 set_pc(pc() + 4);
                 break;
             case InstructionType::LI:
@@ -246,9 +265,35 @@ public:
                 break;
 
             case InstructionType::ECALL:
-            case InstructionType::EBREAK:
+                {
+                uint32_t syscall_num = read_reg(Reg::a7); 
+                switch (syscall_num) {
+                    case 63: // 'read' syscall
+                        handle_read(m);
+                        break;
+                    case 64: // 'read' syscall
+                        handle_write(m);
+                        break;
+                    case 93: // 'exit' syscall
+                        handle_exit();
+                        break;
+                    default:
+                        throw UnknownSyscall(syscall_num);
+                }
                 set_pc(pc() + 4);
                 break;
+                }
+            
+            case InstructionType::EBREAK: // TODO BREAK
+                set_pc(pc() + 4);
+                break;
+            
+            case InstructionType::FENCE:
+            case InstructionType::FENCE_I:
+                // nop
+                set_pc(pc() + 4);
+                break;
+
 
             default:
                 throw std::runtime_error(std::format(
@@ -258,6 +303,82 @@ public:
         }
     }
 
+private:
+    void handle_read(IMEM &mem) {
+        uint64_t fd        = read_reg(Reg::a0);
+        uint64_t vaddr     = read_reg(Reg::a1);
+        uint64_t total_max = read_reg(Reg::a2);
+        uint64_t total_read = 0;
+
+        while (total_read < total_max) {
+            uint64_t remaining = total_max - total_read;
+            uint64_t chunk_size = std::min(remaining, (uint64_t)sizeof(buffer_));
+
+            long ret;
+            asm volatile (
+                "xor %%rax, %%rax;" 
+                "syscall;"
+                : "=a"(ret)
+                : "D"(fd), "S"(buffer_), "d"(chunk_size)
+                : "rcx", "r11", "memory"
+            );
+
+            if (ret < 0) {
+                if (total_read == 0) write_reg(Reg::a0, static_cast<uint64_t>(ret));
+                else write_reg(Reg::a0, total_read);
+                return;
+            }
+            
+            if (ret == 0) break;
+
+            for (long i = 0; i < ret; ++i) {
+                mem.write8(vaddr + total_read + i, buffer_[i]);
+            }
+
+            total_read += ret;
+
+            if (ret < (long)chunk_size) break;
+        }
+
+        write_reg(Reg::a0, total_read);
+    }
+
+    void handle_write(IMEM &mem) {
+        uint64_t fd      = read_reg(Reg::a0);
+        uint64_t vaddr   = read_reg(Reg::a1);
+        uint64_t total_n = read_reg(Reg::a2);
+        uint64_t total_written = 0;
+        while (total_written < total_n) {
+            uint64_t chunk_size = std::min(total_n - total_written, sizeof(buffer_) / sizeof(uint8_t));
+            
+            for (uint64_t i = 0; i < chunk_size; ++i) {
+                buffer_[i] = mem.read8(vaddr + total_written + i);
+            }
+
+            long ret;
+            asm volatile (
+                "mov $1, %%rax;"  
+                "syscall;"
+                : "=a"(ret)
+                : "D"(fd), "S"(buffer_), "d"(chunk_size)
+                : "rcx", "r11", "memory"
+            );
+
+            if (ret < 0) {
+                write_reg(Reg::a0, static_cast<uint64_t>(ret)); // Return error code
+                return;
+            }
+            
+            total_written += ret;
+            if (ret < (long)chunk_size) break; // Partial write
+        }
+        write_reg(Reg::a0, total_written);
+    }
+
+    void handle_exit() {
+        std::cout << "[SIMULATOR] Program exited with status code: " << (int64_t) read_reg(Reg::a0) << "\n";
+        is_running_ = false;
+    }           
 };
 
 
