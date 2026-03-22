@@ -29,4 +29,14 @@ enum Reg : uint8_t {
 
 const static inline uint32_t PAGE_SIZE = 0x1000;
 
+struct Config {
+    std::string isa = "rv32i"; 
+    std::string elf_path = "";
+    std::string init_state_path = "";
+    std::string final_state_path = "";
+    bool interactive = false;
+    bool logs_disabled = false;
+    int steps = 10;
+};
+
 } // namespace rv

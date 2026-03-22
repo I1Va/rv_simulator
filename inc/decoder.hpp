@@ -44,8 +44,9 @@ struct IDecoder {
 };
 
 class Decoder_RV32I : public IDecoder {
+    Config config_;
 public:
-    Decoder_RV32I() = default;
+    Decoder_RV32I(const Config &config): config_(config) {}
 
     Instruction decode32(uint32_t bits) const {
         uint8_t opcode = bits & 0x7F;
@@ -78,12 +79,14 @@ public:
 
         try {
             Instruction instruction = decode32(instr_bits);
-            std::cout << "----------------\n";
-            std::cout << "IN: \n";
-            std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << addr << ":  "
-                    << std::setw(8) << instr_bits << "      " 
-                    << std::left << std::setw(24) << std::setfill(' ') << get_instr_name(instruction) 
-                    << get_instr_operands(instruction) << "\n\n";
+            if (!config_.logs_disabled) {
+                std::cout << "----------------\n";
+                std::cout << "IN: \n";
+                std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << addr << ":  "
+                        << std::setw(8) << instr_bits << "      " 
+                        << std::left << std::setw(24) << std::setfill(' ') << get_instr_name(instruction) 
+                        << get_instr_operands(instruction) << "\n\n";
+            }
             return instruction;
         } catch (const IllegalInstruction32& e) {
             throw IllegalInstruction32PC(e.bits(), addr); 
@@ -117,7 +120,9 @@ private:
     // I-Type: [imm][rs1][funct3][rd][opcode]
     Instruction decode_I_arithmetic(uint32_t b) const {
         uint8_t rd = (b >> 7) & 0x1F, rs1 = (b >> 15) & 0x1F, f3 = (b >> 12) & 0x7;
-        int32_t imm = static_cast<int32_t>(b) >> 20;
+        uint32_t imm = static_cast<int32_t>(b) >> 20;
+        // TODO: FIX IMMEDIATE decoding
+    
 
         switch (f3) {
             case 0x0: return (rs1 == 0) ? Instruction(LI(rd, imm)) : Instruction(ADDI(rd, rs1, imm));
@@ -126,10 +131,12 @@ private:
             case 0x4: return Instruction(XORI(rd, rs1, imm));
             case 0x6: return Instruction(ORI(rd, rs1, imm));
             case 0x7: return Instruction(ANDI(rd, rs1, imm));
-            case 0x1: return Instruction(SLLI(rd, rs1, static_cast<uint8_t>(imm & 0x1F)));
+            case 0x1: 
+                if ((b >> 25) != 0x00) throw IllegalInstruction32(b);    
+                return Instruction(SLLI(rd, rs1, static_cast<uint8_t>(imm & 0x1F)));
             case 0x5: 
                 if ((b >> 30) == 0x0) return Instruction(SRLI(rd, rs1, static_cast<uint8_t>(imm & 0x1F)));
-                if ((b >> 30) == 0x2) return Instruction(SRAI(rd, rs1, static_cast<uint8_t>(imm & 0x1F)));
+                if ((b >> 30) == 0x1) return Instruction(SRAI(rd, rs1, static_cast<uint8_t>(imm & 0x1F)));
         }
         throw IllegalInstruction32(b);
     }

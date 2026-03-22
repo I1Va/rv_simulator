@@ -264,37 +264,37 @@ public:
     }
 
     void dump_segments() const {
-    std::map<uint32_t, const Segment*> sorted_segments;
-    for (const auto& [tag, seg] : segments_) {
-        sorted_segments[tag] = &seg;
-    }
+        std::map<uint32_t, const Segment*> sorted_segments;
+        for (const auto& [tag, seg] : segments_) {
+            sorted_segments[tag] = &seg;
+        }
 
-    std::cout << "\n======================== MEMORY SEGMENT DUMP ========================\n";
-    std::cout << std::format("{:<12} | {:<12} | {:<6} | {:<8} | {:<10}\n", 
-                            "Start VAddr", "End VAddr", "Prot", "Tag", "Size(Hex)");
-    std::cout << std::string(65, '-') << "\n";
+        std::cout << "\n======================== MEMORY SEGMENT DUMP ========================\n";
+        std::cout << std::format("{:<12} | {:<12} | {:<6} | {:<8} | {:<10}\n", 
+                                "Start VAddr", "End VAddr", "Prot", "Tag", "Size(Hex)");
+        std::cout << std::string(65, '-') << "\n";
 
-    for (const auto& [tag, seg] : sorted_segments) {
-        uint32_t start_vaddr = tag * alignment_;
-        uint32_t end_vaddr = start_vaddr + static_cast<uint32_t>(seg->data.size());
+        for (const auto& [tag, seg] : sorted_segments) {
+            uint32_t start_vaddr = tag * alignment_;
+            uint32_t end_vaddr = start_vaddr + static_cast<uint32_t>(seg->data.size());
 
-        std::string prot = std::format("{}{}{}", 
-                                      seg->r ? 'r' : '-', 
-                                      seg->w ? 'w' : '-', 
-                                      seg->x ? 'x' : '-');
+            std::string prot = std::format("{}{}{}", 
+                                        seg->r ? 'r' : '-', 
+                                        seg->w ? 'w' : '-', 
+                                        seg->x ? 'x' : '-');
 
-        std::cout << std::format("0x{:08x}   0x{:08x}   {:<6}   0x{:05x}   0x{:x}\n", 
-                                start_vaddr, end_vaddr, prot, tag, seg->data.size());
-        
-        dump_hex_preview(seg->data);
-    }
+            std::cout << std::format("0x{:08x}   0x{:08x}   {:<6}   0x{:05x}   0x{:x}\n", 
+                                    start_vaddr, end_vaddr, prot, tag, seg->data.size());
+            
+            dump_hex_preview(seg->data);
+        }
     std::cout << "=====================================================================\n" << std::endl;
 }
 
     void dump_hex_preview(const std::vector<uint8_t>& data) const {
         if (data.empty()) return;
         std::cout << "  Preview: ";
-        size_t preview_len = std::min<size_t>(data.size(), 200);
+        size_t preview_len = std::min<size_t>(data.size(), 16);
         for (size_t i = 0; i < preview_len; ++i) {
             std::cout << std::format("{:02x} ", data[i]);
         }

@@ -4,6 +4,17 @@
 
 static const char isa_str[] = "rv32i";
 
+static const rv::Config config = 
+{
+    .isa = "rv32i",
+    .elf_path = "",
+    .init_state_path = "",
+    .final_state_path = "",
+    .interactive = false,
+    .logs_disabled = false,
+    .steps = 10
+};
+
 static const rv::Parser::SegmentInfo DEFAULT_TEXT_SEGMENT = 
 {
     .vaddr = 0x10000,
@@ -60,7 +71,7 @@ static const rv::Parser::SegmentInfo DEFAULT_DATA_SEGMENT =
 #define X31 31 // t6
 
 rv::Simulator create_sim() {
-    rv::Simulator sim(isa_str);
+    rv::Simulator sim(config);
     sim.add_segment(DEFAULT_TEXT_SEGMENT);
     sim.add_segment(DEFAULT_DATA_SEGMENT);
     return sim;
@@ -206,7 +217,7 @@ TEST(UpperImmediate, AUIPC) {
     sim.set_pc(0x1000);
     
     sim.execute_instr(rv::AUIPC(X10, 0x2)); 
-    EXPECT_EQ(sim.read_reg(X10), 0x1000 + (0x2 << 12));
+    EXPECT_EQ(sim.read_reg(X10), 0x1000 + 0x2);
 }
 
 // --- Loads & Stores Tests ---

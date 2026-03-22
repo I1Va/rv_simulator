@@ -10,13 +10,17 @@
 namespace rv 
 {
 
+
+
 class Simulator {
+    Config config_;
+
     std::unique_ptr<ICPU> cpu_;
     std::unique_ptr<IMEM> mem_;
 public:
-    Simulator(std::string_view isa_string) {
-        if (isa_string == "rv32i") {
-            cpu_ = std::make_unique<CPU_RV32I>();
+    Simulator(const Config &config): config_(config) {
+        if (config_.isa == "rv32i") {
+            cpu_ = std::make_unique<CPU_RV32I>(config);
             mem_ = std::make_unique<MEM32>();
         } else {
             throw std::runtime_error("Unknown ISA configuration");
@@ -116,14 +120,13 @@ public:
 
     void step() {
         if (!cpu_->is_running()) {
-            std::cout << "[SIMULATOR] no program is running\n";
+            if (!config_.logs_disabled) std::cout << "[SIMULATOR] no program is running\n";
             return;
         }
     
         try {
             Instruction instruction = cpu_->fetch_and_decode(cpu_->pc(), *mem_.get()); 
-            cpu_dump();
-        
+            if (!config_.logs_disabled) cpu_dump();
             cpu_->execute(instruction, *mem_.get());
         } 
         catch (const rv::IllegalInstruction32PC& e) {
@@ -170,7 +173,7 @@ public:
     
     void interactive_mode() {
         std::string line;
-        std::cout << "Interactive Mode: type 'h' for help\n";
+        if (!config_.logs_disabled) std::cout << "Interactive Mode: type 'h' for help\n";
 
         while (true) {
             std::cout << "sim> ";
@@ -178,6 +181,7 @@ public:
             if (line.empty()) continue;
 
             if (line == "h" || line == "help") {
+                if (!config_.logs_disabled) 
                 std::cout << "Commands:\n"
                         << "  s [n]       Step n instructions (default 1)\n"
                         << "  r           Dump registers\n"
@@ -199,7 +203,8 @@ public:
                     
                     uint32_t word0 = mem_->read32(addr);
                     uint32_t word1 = mem_->read32(addr + 4);
-
+        
+                    if (!config_.logs_disabled)
                     std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << addr << ":  "
                             << "0x" << std::setw(8) << std::setfill('0') << word1 
                             << std::setw(8) << std::setfill('0') << word0 
@@ -213,8 +218,10 @@ public:
                 try {
                     uint32_t addr = std::stoul(line.substr(2), nullptr, 0);
                     cpu_->set_pc(addr);
+                    if (!config_.logs_disabled)
                     std::cout << "PC set to: 0x" << std::hex << addr << std::dec << "\n";
                 } catch (...) { 
+                    if (!config_.logs_disabled)
                     std::cout << "Invalid address format\n"; 
                 }
             }

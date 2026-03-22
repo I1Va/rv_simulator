@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
 cmake --build build -j 8
 # ./build/rv_simulator
 

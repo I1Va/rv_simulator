@@ -44,6 +44,8 @@ public:
 };
 
 class CPU_RV32I : public ICPU {
+    Config config_;
+
     uint32_t pc_;
     std::vector<uint32_t> regs_;
     std::unique_ptr<IDecoder> decoder_;
@@ -52,8 +54,8 @@ class CPU_RV32I : public ICPU {
     uint8_t buffer_[BUFSIZ] = {};
 
 public:
-    CPU_RV32I(): pc_(0), regs_(32) {
-        decoder_ = std::make_unique<Decoder_RV32I>();
+    CPU_RV32I(const Config &config): config_(config), pc_(0), regs_(32) {
+        decoder_ = std::make_unique<Decoder_RV32I>(config_);
     }
 
     void set_pc(uint64_t pc) override {
@@ -376,6 +378,7 @@ private:
     }
 
     void handle_exit() {
+        if (!config_.logs_disabled)
         std::cout << "[SIMULATOR] Program exited with status code: " << (int64_t) read_reg(Reg::a0) << "\n";
         is_running_ = false;
     }           

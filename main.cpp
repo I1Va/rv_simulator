@@ -3,16 +3,7 @@
 #include "simulator.hpp"
 #include "CLI11.hpp"
 
-struct Config {
-    std::string isa = "rv32i"; 
-    std::string elf_path = "";
-    std::string init_state_path = "";
-    std::string final_state_path = "";
-    bool interactive = false;
-    int steps = 10;
-};
-
-std::string get_config_str(Config &config) {
+std::string get_config_str(rv::Config &config) {
     std::stringstream ss;
     ss << "========================================\n"
         << " Simulation Configuration:\n"
@@ -27,7 +18,7 @@ std::string get_config_str(Config &config) {
 }
 
 int main(int argc, char* argv[]) {
-    Config config;
+    rv::Config config;
     CLI::App app{"RISC-V RV32I Simulator"};
 
     app.add_option("elf", config.elf_path, "Path to the target ELF binary")
@@ -45,6 +36,7 @@ int main(int argc, char* argv[]) {
     app.add_option("--final_state,-f", config.final_state_path, "Path to final PC and registers file");
 
     app.add_flag("--interactive", config.interactive, "Enable interactive mode");
+    app.add_flag("--disable-logs", config.logs_disabled, "Enable interactive mode");
 
     try {
         app.parse(argc, argv);
@@ -53,7 +45,7 @@ int main(int argc, char* argv[]) {
     }
 
     try {
-        rv::Simulator sim(config.isa);
+        rv::Simulator sim(config);
 
         if (sim.load_elf(config.elf_path) != 0) {
             return 1;
@@ -64,11 +56,15 @@ int main(int argc, char* argv[]) {
                 std::cerr << "Error: Failed to load initial state from " << config.init_state_path << "\n";
                 return 1;
             }
+
+            if (!config.logs_disabled)
             std::cout << "Initial state loaded from: " << config.init_state_path << "\n";
         }
 
-        std::cout << "Starting simulation: \n";
-        std::cout << get_config_str(config) << "\n";
+        if (!config.logs_disabled) {
+            std::cout << "Starting simulation: \n";
+            std::cout << get_config_str(config) << "\n";
+        }   
         
         if (config.interactive) {
             sim.interactive_mode();
@@ -77,7 +73,7 @@ int main(int argc, char* argv[]) {
         }
 
         if (!config.final_state_path.empty()) {
-            if (sim.dump_cpu_state("examples/final_state") != 0) {
+            if (sim.dump_cpu_state(config.final_state_path) != 0) {
                 std::cerr << "Error: Failed to write final state to " << config.final_state_path << "\n";
                 return 1;
             }
