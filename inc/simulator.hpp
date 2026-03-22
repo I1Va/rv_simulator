@@ -102,7 +102,7 @@ public:
     }
 
     void execute_instr(const Instruction &instruction) {
-        execute(instruction, *cpu_.get(), *mem_.get());
+        cpu_->execute(instruction, *mem_.get());
     }
 
     void set_pc(const uint64_t pc) { cpu_->set_pc(pc); }
@@ -119,10 +119,11 @@ public:
 
     void step() {
         try {
-            Instruction instruction = decoder_->fetch_and_decode(cpu_->pc(), *mem_.get());
+            // move decoder logic into cpu
+            Instruction instruction = decoder_->fetch_and_decode(cpu_->pc(), *mem_.get()); // Перенести логику fetch, decode в cpu
             cpu_dump();
         
-            execute(instruction, *cpu_.get(), *mem_.get());
+            cpu_->execute(instruction, *mem_.get());
         } 
         catch (const rv::IllegalInstruction32PC& e) {
             std::cerr << "[CPU ERROR] " << e.what() << std::endl;

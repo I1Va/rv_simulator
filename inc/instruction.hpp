@@ -1,79 +1,158 @@
 #pragma once
-
-#include <memory>
-#include "instruction_impl.hpp"
-
+#include <cstdint>
+#include <string>
 namespace rv
 {
 
-class Instruction {
-    struct I_Instruction {
-        virtual ~I_Instruction() = default;
-        virtual std::unique_ptr<I_Instruction> copy_() const = 0;
-        virtual void execute_(ICPU &, IMEM &) const = 0;
-        virtual std::string name_() const = 0;
-        virtual std::string operands_() const = 0;
-    };
+enum class InstructionType {
+    // --- Arithmetic R-Type ---
+    ADD,
+    SUB,
+    SLL,
+    SLT,
+    SLTU,
+    XOR,
+    SRL,
+    SRA,
+    OR,
+    AND,
 
-    template <typename T>
-    struct InstructionObject final : I_Instruction {
-        T data_;
-        InstructionObject(T x) : data_(std::move(x)) {}
-        std::unique_ptr<I_Instruction> copy_() const override {
-            return std::make_unique<InstructionObject>(*this);
-        }
+    // --- Arithmetic I-Type ---
+    ADDI,
+    SLTI,
+    SLTIU,
+    XORI,
+    ORI,
+    ANDI,
+    SLLI,
+    SRLI,
+    SRAI,
 
-        void execute_(ICPU &cpu, IMEM &mem) const override {
-            rv::execute(data_, cpu, mem);
-        }
+    // --- Loads & Stores ---
+    LB,
+    LH,
+    LW,
+    LBU,
+    LHU,
+    SB,
+    SH,
+    SW,
 
-        std::string name_() const override {
-            return rv::name(data_);
-        }
+    // --- Control Flow ---
+    BEQ,
+    BNE,
+    BLT,
+    BGE,
+    BLTU,
+    BGEU,
+    JAL,
+    JALR,
 
-        std::string operands_() const override {
-            return rv::operands(data_);
-        }
-    };
+    // --- Upper Immediates & System ---
+    LUI,
+    AUIPC,
+    ECALL,
+    EBREAK,
 
-    std::unique_ptr<I_Instruction> self_;
-
-public:
-    template <typename T>
-    Instruction(T &x) : self_(std::make_unique<InstructionObject<T>>(x)) {}
-
-    template <typename T>
-    Instruction(T &&x) : self_(std::make_unique<InstructionObject<T>>(std::move(x))) {}
-
-    template <typename T>
-    Instruction operator=(T x) { 
-        Instruction tmp{std::move(x)};
-        std::swap(this->self_, tmp.self_); 
-        return *this;
-    }
-    
-    template <typename T>
-    Instruction operator=(T &&x) { 
-        self_ = std::make_unique<InstructionObject<T>>(std::move(x)); 
-        return *this;
-    }
-
-public:
-    friend void execute(const Instruction &x, ICPU &cpu, IMEM &mem) {
-        x.self_->execute_(cpu, mem);
-    }
-
-    friend std::string name(const Instruction &x) {
-        return x.self_->name_();
-    }
-
-    friend std::string operands(const Instruction &x) {
-        return x.self_->operands_();
-    }
-
-    friend std::string to_string(const Instruction &x) {
-        return x.self_->name_() + " " + x.self_->operands_();
-    }
+    // --- Pseudo Instructions ---
+    LI,
 };
+
+struct Instruction {
+    InstructionType type;
+    uint8_t rd, rs1, rs2;
+    uint8_t shamt;
+    int32_t imm;
+};
+
+#define R_TYPE_CONSTRUCTOR(Name) \
+inline Instruction Name(uint8_t rd, uint8_t rs1, uint8_t rs2) { \
+    Instruction result = {}; \
+    result.type = InstructionType::Name; \
+    result.rd = rd; result.rs1 = rs1; result.rs2 = rs2; \
+    return result; \
+}
+
+R_TYPE_CONSTRUCTOR(ADD)  R_TYPE_CONSTRUCTOR(SUB)  R_TYPE_CONSTRUCTOR(SLL)
+R_TYPE_CONSTRUCTOR(SLT)  R_TYPE_CONSTRUCTOR(SLTU) R_TYPE_CONSTRUCTOR(XOR)
+R_TYPE_CONSTRUCTOR(SRL)  R_TYPE_CONSTRUCTOR(SRA)  R_TYPE_CONSTRUCTOR(OR)
+R_TYPE_CONSTRUCTOR(AND)
+
+#define I_TYPE_CONSTRUCTOR(Name) \
+inline Instruction Name(uint8_t rd, uint8_t rs1, int32_t imm) { \
+    Instruction result = {}; \
+    result.type = InstructionType::Name; \
+    result.rd = rd; result.rs1 = rs1; result.imm = imm; \
+    return result; \
+}
+
+I_TYPE_CONSTRUCTOR(ADDI)  I_TYPE_CONSTRUCTOR(SLTI)  I_TYPE_CONSTRUCTOR(SLTIU)
+I_TYPE_CONSTRUCTOR(XORI)  I_TYPE_CONSTRUCTOR(ORI)   I_TYPE_CONSTRUCTOR(ANDI)
+I_TYPE_CONSTRUCTOR(LB)    I_TYPE_CONSTRUCTOR(LH)    I_TYPE_CONSTRUCTOR(LW)
+I_TYPE_CONSTRUCTOR(LBU)   I_TYPE_CONSTRUCTOR(LHU)   I_TYPE_CONSTRUCTOR(JALR)
+
+inline Instruction LI(uint8_t rd, int32_t imm) {
+    Instruction result = {};
+    result.type = InstructionType::LI; 
+    result.rd = rd;
+    result.imm = imm;
+    return result; 
+}
+
+#define SHIFT_TYPE_CONSTRUCTOR(Name) \
+inline Instruction Name(uint8_t rd, uint8_t rs1, uint8_t shamt) { \
+    Instruction result = {}; \
+    result.type = InstructionType::Name; \
+    result.rd = rd; result.rs1 = rs1; result.shamt = shamt; \
+    return result; \
+}
+
+SHIFT_TYPE_CONSTRUCTOR(SLLI) SHIFT_TYPE_CONSTRUCTOR(SRLI) SHIFT_TYPE_CONSTRUCTOR(SRAI)
+
+#define S_TYPE_CONSTRUCTOR(Name) \
+inline Instruction Name(uint8_t rs1, uint8_t rs2, int32_t imm) { \
+    Instruction result = {}; \
+    result.type = InstructionType::Name; \
+    result.rs1 = rs1; result.rs2 = rs2; result.imm = imm; \
+    return result; \
+}
+
+S_TYPE_CONSTRUCTOR(SB) S_TYPE_CONSTRUCTOR(SH) S_TYPE_CONSTRUCTOR(SW)
+
+#define B_TYPE_CONSTRUCTOR(Name) \
+inline Instruction Name(uint8_t rs1, uint8_t rs2, int32_t imm) { \
+    Instruction result = {}; \
+    result.type = InstructionType::Name; \
+    result.rs1 = rs1; result.rs2 = rs2; result.imm = imm; \
+    return result; \
+}
+
+B_TYPE_CONSTRUCTOR(BEQ)  B_TYPE_CONSTRUCTOR(BNE)  B_TYPE_CONSTRUCTOR(BLT)
+B_TYPE_CONSTRUCTOR(BGE)  B_TYPE_CONSTRUCTOR(BLTU) B_TYPE_CONSTRUCTOR(BGEU)
+
+#define UJ_TYPE_CONSTRUCTOR(Name) \
+inline Instruction Name(uint8_t rd, int32_t imm) { \
+    Instruction result = {}; \
+    result.type = InstructionType::Name; \
+    result.rd = rd; result.imm = imm; \
+    return result; \
+}
+
+UJ_TYPE_CONSTRUCTOR(LUI) UJ_TYPE_CONSTRUCTOR(AUIPC) UJ_TYPE_CONSTRUCTOR(JAL)
+
+inline Instruction ECALL() {
+    Instruction result = {};
+    result.type = InstructionType::ECALL;
+    return result;
+}
+
+inline Instruction EBREAK() {
+    Instruction result = {};
+    result.type = InstructionType::EBREAK;
+    return result;
+}
+
+std::string get_instr_name(Instruction &instr);
+std::string get_instr_operands(Instruction &instr);
 
 } // namspace rv

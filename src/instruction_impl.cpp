@@ -1,282 +1,126 @@
-#include "instruction.hpp"
 #include <iostream>
+#include <array>
+#include <format>
+#include <iostream>
+
+#include "instruction.hpp"
+
+
 namespace rv
 {
-    
-// --- Arithmetic Implementation ---
-void execute(ADD i, ICPU &c, IMEM &) {
-    uint32_t result = c.read_reg(i.rs1) + c.read_reg(i.rs2);
-    c.write_reg(i.rd, result);
-    c.set_pc(c.pc() + 4);
-}
-void execute(SUB i, ICPU &c, IMEM &) {
-    uint32_t result = c.read_reg(i.rs1) - c.read_reg(i.rs2);
-    c.write_reg(i.rd, result);
-    c.set_pc(c.pc() + 4);
-}
-void execute(SLL i, ICPU &c, IMEM &) {
-    uint32_t shift = c.read_reg(i.rs2) & 0x1F;
-    c.write_reg(i.rd, c.read_reg(i.rs1) << shift);
-    c.set_pc(c.pc() + 4);
-}
-void execute(SLT i, ICPU &c, IMEM &) {
-    bool less = (int32_t)c.read_reg(i.rs1) < (int32_t)c.read_reg(i.rs2);
-    c.write_reg(i.rd, less ? 1 : 0);
-    c.set_pc(c.pc() + 4);
-}
-void execute(SLTU i, ICPU &c, IMEM &) {
-    bool less = c.read_reg(i.rs1) < c.read_reg(i.rs2);
-    c.write_reg(i.rd, less ? 1 : 0);
-    c.set_pc(c.pc() + 4);
-}
-void execute(XOR i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, c.read_reg(i.rs1) ^ c.read_reg(i.rs2));
-    c.set_pc(c.pc() + 4);
-}
-void execute(SRL i, ICPU &c, IMEM &) {
-    uint32_t shift = c.read_reg(i.rs2) & 0x1F;
-    c.write_reg(i.rd, c.read_reg(i.rs1) >> shift);
-    c.set_pc(c.pc() + 4);
-}
-void execute(SRA i, ICPU &c, IMEM &) {
-    uint32_t shift = c.read_reg(i.rs2) & 0x1F;
-    int32_t val = (int32_t)c.read_reg(i.rs1);
-    c.write_reg(i.rd, (uint32_t)(val >> shift));
-    c.set_pc(c.pc() + 4);
-}
-void execute(OR i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, c.read_reg(i.rs1) | c.read_reg(i.rs2));
-    c.set_pc(c.pc() + 4);
-}
-void execute(AND i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, c.read_reg(i.rs1) & c.read_reg(i.rs2));
-    c.set_pc(c.pc() + 4);
-}
-
-// --- Immediate Arithmetic ---
-void execute(ADDI i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, c.read_reg(i.rs1) + i.imm);
-    c.set_pc(c.pc() + 4);
-}
-void execute(SLTI i, ICPU &c, IMEM &) {
-    bool less = (int32_t)c.read_reg(i.rs1) < i.imm;
-    c.write_reg(i.rd, less ? 1 : 0);
-    c.set_pc(c.pc() + 4);
-}
-void execute(SLTIU i, ICPU &c, IMEM &) {
-    bool less = c.read_reg(i.rs1) < (uint32_t)i.imm;
-    c.write_reg(i.rd, less ? 1 : 0);
-    c.set_pc(c.pc() + 4);
-}
-void execute(XORI i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, c.read_reg(i.rs1) ^ (uint32_t)i.imm);
-    c.set_pc(c.pc() + 4);
-}
-void execute(ORI i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, c.read_reg(i.rs1) | (uint32_t)i.imm);
-    c.set_pc(c.pc() + 4);
-}
-void execute(ANDI i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, c.read_reg(i.rs1) & (uint32_t)i.imm);
-    c.set_pc(c.pc() + 4);
-}
-void execute(SLLI i, ICPU &c, IMEM &) {
-    uint32_t shift = i.shamt & 0x1F;
-    c.write_reg(i.rd, c.read_reg(i.rs1) << shift);
-    c.set_pc(c.pc() + 4);
-}
-void execute(SRLI i, ICPU &c, IMEM &) {
-    uint32_t shift = i.shamt & 0x1F;
-    c.write_reg(i.rd, c.read_reg(i.rs1) >> shift);
-    c.set_pc(c.pc() + 4);
-}
-void execute(SRAI i, ICPU &c, IMEM &) {
-    uint32_t shift = i.shamt & 0x1F;
-    int32_t val = (int32_t)c.read_reg(i.rs1);
-    c.write_reg(i.rd, (uint32_t)(val >> shift));
-    c.set_pc(c.pc() + 4);
-}
-
-// --- Memory Operations ---
-void execute(LB i, ICPU &c, IMEM &m) {
-    uint32_t addr = c.read_reg(i.rs1) + i.imm;
-    int32_t val = (int32_t)(int8_t)m.read8(addr);
-    c.write_reg(i.rd, val);
-    c.set_pc(c.pc() + 4);
-}
-void execute(LH i, ICPU &c, IMEM &m) {
-    uint32_t addr = c.read_reg(i.rs1) + i.imm;
-    int32_t val = (int32_t)(int16_t)m.read16(addr);
-    c.write_reg(i.rd, val);
-    c.set_pc(c.pc() + 4);
-}
-void execute(LW i, ICPU &c, IMEM &m) {
-    uint32_t addr = c.read_reg(i.rs1) + i.imm;
-    c.write_reg(i.rd, m.read32(addr));
-    c.set_pc(c.pc() + 4);
-}
-void execute(LBU i, ICPU &c, IMEM &m) {
-    uint32_t addr = c.read_reg(i.rs1) + i.imm;
-    c.write_reg(i.rd, (uint32_t)m.read8(addr));
-    c.set_pc(c.pc() + 4);
-}
-void execute(LHU i, ICPU &c, IMEM &m) {
-    uint32_t addr = c.read_reg(i.rs1) + i.imm;
-    c.write_reg(i.rd, (uint32_t)m.read16(addr));
-    c.set_pc(c.pc() + 4);
-}
-void execute(SB i, ICPU &c, IMEM &m) {
-    uint32_t addr = c.read_reg(i.rs1) + i.imm;
-    m.write8(addr, (uint8_t)c.read_reg(i.rs2));
-    c.set_pc(c.pc() + 4);
-}
-void execute(SH i, ICPU &c, IMEM &m) {
-    uint32_t addr = c.read_reg(i.rs1) + i.imm;
-    m.write16(addr, (uint16_t)c.read_reg(i.rs2));
-    c.set_pc(c.pc() + 4);
-}
-void execute(SW i, ICPU &c, IMEM &m) {
-    uint32_t addr = c.read_reg(i.rs1) + i.imm;
-    m.write32(addr, c.read_reg(i.rs2));
-    c.set_pc(c.pc() + 4);
-}
-
-// --- Control flow ---
-void execute(BEQ i, ICPU &c, IMEM &) {
-    if (c.read_reg(i.rs1) == c.read_reg(i.rs2)) {
-        c.set_pc(c.pc() + i.imm);
-    } else {
-        c.set_pc(c.pc() + 4);
-    }
-}
-void execute(BNE i, ICPU &c, IMEM &) {
-    if (c.read_reg(i.rs1) != c.read_reg(i.rs2)) {
-        c.set_pc(c.pc() + i.imm);
-    } else {
-        c.set_pc(c.pc() + 4);
-    }
-}
-void execute(BLT i, ICPU &c, IMEM &) {
-    if ((int32_t)c.read_reg(i.rs1) < (int32_t)c.read_reg(i.rs2)) {
-        c.set_pc(c.pc() + i.imm);
-    } else {
-        c.set_pc(c.pc() + 4);
-    }
-}
-void execute(BGE i, ICPU &c, IMEM &) {
-    if ((int32_t)c.read_reg(i.rs1) >= (int32_t)c.read_reg(i.rs2)) {
-        c.set_pc(c.pc() + i.imm);
-    } else {
-        c.set_pc(c.pc() + 4);
-    }
-}
-void execute(BLTU i, ICPU &c, IMEM &) {
-    if (c.read_reg(i.rs1) < c.read_reg(i.rs2)) {
-        c.set_pc(c.pc() + i.imm);
-    } else {
-        c.set_pc(c.pc() + 4);
-    }
-}
-void execute(BGEU i, ICPU &c, IMEM &) {
-    if (c.read_reg(i.rs1) >= c.read_reg(i.rs2)) {
-        c.set_pc(c.pc() + i.imm);
-    } else {
-        c.set_pc(c.pc() + 4);
-    }
-}
-void execute(JAL i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, c.pc() + 4);
-    c.set_pc(c.pc() + i.imm);
-}
-void execute(JALR i, ICPU &c, IMEM &) {
-    uint32_t target = (c.read_reg(i.rs1) + i.imm) & ~1U;
-    c.write_reg(i.rd, c.pc() + 4);
-    c.set_pc(target);
-}
-
-// --- Pseudo Instructions ---
-void execute(LUI i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, (uint32_t)i.imm << 12); 
-    c.set_pc(c.pc() + 4);
-}
-void execute(AUIPC i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, (uint32_t)c.pc() + ((uint32_t)i.imm << 12));
-    c.set_pc(c.pc() + 4);
-}
-void execute(LI i, ICPU &c, IMEM &) {
-    c.write_reg(i.rd, (uint32_t)i.imm);
-    c.set_pc(c.pc() + 4);
-}
-
-
-static const std::string reg_abi[] = {
+  
+static const char* reg_names[] = {
     "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
     "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
     "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
     "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
+std::string get_instr_name(Instruction &instr) {
+    switch (instr.type) {
+        // --- Arithmetic R-Type ---
+        case InstructionType::ADD:   return "add";
+        case InstructionType::SUB:   return "sub";
+        case InstructionType::SLL:   return "sll";
+        case InstructionType::SLT:   return "slt";
+        case InstructionType::SLTU:  return "sltu";
+        case InstructionType::XOR:   return "xor";
+        case InstructionType::SRL:   return "srl";
+        case InstructionType::SRA:   return "sra";
+        case InstructionType::OR:    return "or";
+        case InstructionType::AND:   return "and";
 
+        // --- Arithmetic I-Type ---
+        case InstructionType::ADDI:  return "addi";
+        case InstructionType::SLTI:  return "slti";
+        case InstructionType::SLTIU: return "sltiu";
+        case InstructionType::XORI:  return "xori";
+        case InstructionType::ORI:   return "ori";
+        case InstructionType::ANDI:  return "andi";
+        case InstructionType::SLLI:  return "slli";
+        case InstructionType::SRLI:  return "srli";
+        case InstructionType::SRAI:  return "srai";
 
-#define DEFFUNC(Type, NameStr, OpsExpr) \
-    std::string name(const Type&) { return NameStr; } \
-    std::string operands([[maybe_unused]] const Type& i) { return OpsExpr; }
+        // --- Loads & Stores ---
+        case InstructionType::LB:    return "lb";
+        case InstructionType::LH:    return "lh";
+        case InstructionType::LW:    return "lw";
+        case InstructionType::LBU:   return "lbu";
+        case InstructionType::LHU:   return "lhu";
+        case InstructionType::SB:    return "sb";
+        case InstructionType::SH:    return "sh";
+        case InstructionType::SW:    return "sw";
 
-#define R_OPS reg_abi[i.rd] + "," + reg_abi[i.rs1] + "," + reg_abi[i.rs2]
-#define I_OPS reg_abi[i.rd] + "," + reg_abi[i.rs1] + "," + std::to_string(i.imm)
-#define S_OPS reg_abi[i.rs2] + "," + std::to_string(i.imm) + "(" + reg_abi[i.rs1] + ")"
-#define L_OPS reg_abi[i.rd] + "," + std::to_string(i.imm) + "(" + reg_abi[i.rs1] + ")"
-#define B_OPS reg_abi[i.rs1] + "," + reg_abi[i.rs2] + "," + std::to_string(i.imm)
+        // --- Control Flow ---
+        case InstructionType::BEQ:   return "beq";
+        case InstructionType::BNE:   return "bne";
+        case InstructionType::BLT:   return "blt";
+        case InstructionType::BGE:   return "bge";
+        case InstructionType::BLTU:  return "bltu";
+        case InstructionType::BGEU:  return "bgeu";
+        case InstructionType::JAL:   return "jal";
+        case InstructionType::JALR:  return "jalr";
 
-// --- R-Type ---
-DEFFUNC(ADD,  "add",  R_OPS)
-DEFFUNC(SUB,  "sub",  R_OPS)
-DEFFUNC(SLL,  "sll",  R_OPS)
-DEFFUNC(SLT,  "slt",  R_OPS)
-DEFFUNC(SLTU, "sltu", R_OPS)
-DEFFUNC(XOR,  "xor",  R_OPS)
-DEFFUNC(SRL,  "srl",  R_OPS)
-DEFFUNC(SRA,  "sra",  R_OPS)
-DEFFUNC(OR,   "or",   R_OPS)
-DEFFUNC(AND,  "and",  R_OPS)
+        // --- Upper Immediates & System ---
+        case InstructionType::LUI:   return "lui";
+        case InstructionType::AUIPC: return "auipc";
+        case InstructionType::ECALL: return "ecall";
+        case InstructionType::EBREAK:return "ebreak";
 
-// --- I-Type ---
-DEFFUNC(ADDI,  "addi",  I_OPS)
-DEFFUNC(SLTI,  "slti",  I_OPS)
-DEFFUNC(SLTIU, "sltiu", I_OPS)
-DEFFUNC(XORI,  "xori",  I_OPS)
-DEFFUNC(ORI,   "ori",   I_OPS)
-DEFFUNC(ANDI,  "andi",  I_OPS)
-DEFFUNC(SLLI,  "slli",  reg_abi[i.rd] + "," + reg_abi[i.rs1] + "," + std::to_string(i.shamt))
-DEFFUNC(SRLI,  "srli",  reg_abi[i.rd] + "," + reg_abi[i.rs1] + "," + std::to_string(i.shamt))
-DEFFUNC(SRAI,  "srai",  reg_abi[i.rd] + "," + reg_abi[i.rs1] + "," + std::to_string(i.shamt))
+        // --- Pseudo Instructions ---
+        case InstructionType::LI:    return "li";
 
-// --- Loads & Stores ---
-DEFFUNC(LB,  "lb",  L_OPS)
-DEFFUNC(LH,  "lh",  L_OPS)
-DEFFUNC(LW,  "lw",  L_OPS)
-DEFFUNC(LBU, "lbu", L_OPS)
-DEFFUNC(LHU, "lhu", L_OPS)
-DEFFUNC(SB,  "sb",  S_OPS)
-DEFFUNC(SH,  "sh",  S_OPS)
-DEFFUNC(SW,  "sw",  S_OPS)
+        default: return "unknown";
+    }
+}
 
-// --- Branches ---
-DEFFUNC(BEQ,  "beq",  B_OPS)
-DEFFUNC(BNE,  "bne",  B_OPS)
-DEFFUNC(BLT,  "blt",  B_OPS)
-DEFFUNC(BGE,  "bge",  B_OPS)
-DEFFUNC(BLTU, "bltu", B_OPS)
-DEFFUNC(BGEU, "bgeu", B_OPS)
+std::string get_instr_operands(Instruction &instr) {
+    using IT = InstructionType;
+    
+    switch (instr.type) {
+        // R-Type: rd, rs1, rs2
+        case IT::ADD:  case IT::SUB:  case IT::SLL:  case IT::SLT:
+        case IT::SLTU: case IT::XOR:  case IT::SRL:  case IT::SRA:
+        case IT::OR:   case IT::AND:
+            return std::string(reg_names[instr.rd]) + ", " + reg_names[instr.rs1] + ", " + reg_names[instr.rs2];
 
-// --- Jumps & System ---
-DEFFUNC(JAL,   "jal",   reg_abi[i.rd] + "," + std::to_string(i.imm))
-DEFFUNC(JALR,  "jalr",  reg_abi[i.rd] + "," + std::to_string(i.imm) + "(" + reg_abi[i.rs1] + ")")
-DEFFUNC(LUI,   "lui",   reg_abi[i.rd] + "," + std::to_string(i.imm >> 12))
-DEFFUNC(AUIPC, "auipc", reg_abi[i.rd] + "," + std::to_string(i.imm >> 12))
-DEFFUNC(LI,    "li",    reg_abi[i.rd] + "," + std::to_string(i.imm))
-DEFFUNC(ECALL, "ecall", "")
+        // I-Type: rd, rs1, imm
+        case IT::ADDI:  case IT::SLTI: case IT::SLTIU: 
+        case IT::XORI:  case IT::ORI:  case IT::ANDI: case IT::LI:
+            return std::string(reg_names[instr.rd]) + ", " + reg_names[instr.rs1] + ", " + std::to_string(instr.imm);
 
+        // Shift I-Type: rd, rs1, shamt
+        case IT::SLLI:  case IT::SRLI: case IT::SRAI:
+            return std::string(reg_names[instr.rd]) + ", " + reg_names[instr.rs1] + ", " + std::to_string(instr.shamt);
+
+        // Load-Type: rd, imm(rs1)
+        case IT::LB:  case IT::LH:  case IT::LW:  case IT::LBU: case IT::LHU:
+            return std::string(reg_names[instr.rd]) + ", " + std::to_string(instr.imm) + "(" + reg_names[instr.rs1] + ")";
+
+        // Store-Type: rs2, imm(rs1)
+        case IT::SB:  case IT::SH:  case IT::SW:
+            return std::string(reg_names[instr.rs2]) + ", " + std::to_string(instr.imm) + "(" + reg_names[instr.rs1] + ")";
+
+        // Branch-Type: rs1, rs2, imm
+        case IT::BEQ:  case IT::BNE:  case IT::BLT: 
+        case IT::BGE:  case IT::BLTU: case IT::BGEU:
+            return std::string(reg_names[instr.rs1]) + ", " + reg_names[instr.rs2] + ", " + std::to_string(instr.imm);
+
+        // Jump/Upper-Type: rd, imm
+        case IT::JAL:   case IT::LUI:  case IT::AUIPC:
+            return std::string(reg_names[instr.rd]) + ", " + std::to_string(instr.imm);
+
+        // JALR: rd, imm(rs1)
+        case IT::JALR:
+            return std::string(reg_names[instr.rd]) + ", " + std::to_string(instr.imm) + "(" + reg_names[instr.rs1] + ")";
+
+        case IT::ECALL: case IT::EBREAK:
+            return "";
+
+        default:
+            return "unknown";
+    }
+}
 
 
 } // namespace rv

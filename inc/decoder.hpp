@@ -81,8 +81,8 @@ public:
             std::cout << "IN: \n";
             std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << addr << ":  "
                     << std::setw(8) << instr_bits << "      " 
-                    << std::left << std::setw(24) << std::setfill(' ') << name(instruction) 
-                    << operands(instruction) << "\n\n";
+                    << std::left << std::setw(24) << std::setfill(' ') << get_instr_name(instruction) 
+                    << get_instr_operands(instruction) << "\n\n";
             return instruction;
         } catch (const IllegalInstruction32& e) {
             throw IllegalInstruction32PC(e.bits(), addr); 
@@ -97,18 +97,18 @@ private:
 
         if (f7 == 0x00) {
             switch (f3) {
-                case 0x0: return Instruction(ADD{rd, rs1, rs2});
-                case 0x1: return Instruction(SLL{rd, rs1, rs2});
-                case 0x2: return Instruction(SLT{rd, rs1, rs2});
-                case 0x3: return Instruction(SLTU{rd, rs1, rs2});
-                case 0x4: return Instruction(XOR{rd, rs1, rs2});
-                case 0x5: return Instruction(SRL{rd, rs1, rs2});
-                case 0x6: return Instruction(OR{rd, rs1, rs2});
-                case 0x7: return Instruction(AND{rd, rs1, rs2});
+                case 0x0: return Instruction(ADD(rd, rs1, rs2));
+                case 0x1: return Instruction(SLL(rd, rs1, rs2));
+                case 0x2: return Instruction(SLT(rd, rs1, rs2));
+                case 0x3: return Instruction(SLTU(rd, rs1, rs2));
+                case 0x4: return Instruction(XOR(rd, rs1, rs2));
+                case 0x5: return Instruction(SRL(rd, rs1, rs2));
+                case 0x6: return Instruction(OR(rd, rs1, rs2));
+                case 0x7: return Instruction(AND(rd, rs1, rs2));
             }
         } else if (f7 == 0x20) {
-            if (f3 == 0x0) return Instruction(SUB{rd, rs1, rs2});
-            if (f3 == 0x5) return Instruction(SRA{rd, rs1, rs2});
+            if (f3 == 0x0) return Instruction(SUB(rd, rs1, rs2));
+            if (f3 == 0x5) return Instruction(SRA(rd, rs1, rs2));
         }
         throw IllegalInstruction32(b);
     }
@@ -119,16 +119,16 @@ private:
         int32_t imm = static_cast<int32_t>(b) >> 20;
 
         switch (f3) {
-            case 0x0: return (rs1 == 0) ? Instruction(LI{rd, imm}) : Instruction(ADDI{rd, rs1, imm});
-            case 0x2: return Instruction(SLTI{rd, rs1, imm});
-            case 0x3: return Instruction(SLTIU{rd, rs1, imm});
-            case 0x4: return Instruction(XORI{rd, rs1, imm});
-            case 0x6: return Instruction(ORI{rd, rs1, imm});
-            case 0x7: return Instruction(ANDI{rd, rs1, imm});
-            case 0x1: return Instruction(SLLI{rd, rs1, static_cast<uint8_t>(imm & 0x1F)});
+            case 0x0: return (rs1 == 0) ? Instruction(LI(rd, imm)) : Instruction(ADDI(rd, rs1, imm));
+            case 0x2: return Instruction(SLTI(rd, rs1, imm));
+            case 0x3: return Instruction(SLTIU(rd, rs1, imm));
+            case 0x4: return Instruction(XORI(rd, rs1, imm));
+            case 0x6: return Instruction(ORI(rd, rs1, imm));
+            case 0x7: return Instruction(ANDI(rd, rs1, imm));
+            case 0x1: return Instruction(SLLI(rd, rs1, static_cast<uint8_t>(imm & 0x1F)));
             case 0x5: 
-                if ((b >> 30) == 0x0) return Instruction(SRLI{rd, rs1, static_cast<uint8_t>(imm & 0x1F)});
-                if ((b >> 30) == 0x2) return Instruction(SRAI{rd, rs1, static_cast<uint8_t>(imm & 0x1F)});
+                if ((b >> 30) == 0x0) return Instruction(SRLI(rd, rs1, static_cast<uint8_t>(imm & 0x1F)));
+                if ((b >> 30) == 0x2) return Instruction(SRAI(rd, rs1, static_cast<uint8_t>(imm & 0x1F)));
         }
         throw IllegalInstruction32(b);
     }
@@ -137,11 +137,11 @@ private:
         uint8_t rd = (b >> 7) & 0x1F, rs1 = (b >> 15) & 0x1F, f3 = (b >> 12) & 0x7;
         int32_t imm = static_cast<int32_t>(b) >> 20;
         switch (f3) {
-            case 0x0: return Instruction(LB{rd, rs1, imm});
-            case 0x1: return Instruction(LH{rd, rs1, imm});
-            case 0x2: return Instruction(LW{rd, rs1, imm});
-            case 0x4: return Instruction(LBU{rd, rs1, imm});
-            case 0x5: return Instruction(LHU{rd, rs1, imm});
+            case 0x0: return Instruction(LB(rd, rs1, imm));
+            case 0x1: return Instruction(LH(rd, rs1, imm));
+            case 0x2: return Instruction(LW(rd, rs1, imm));
+            case 0x4: return Instruction(LBU(rd, rs1, imm));
+            case 0x5: return Instruction(LHU(rd, rs1, imm));
         }
         throw IllegalInstruction32(b);
     }
@@ -151,9 +151,9 @@ private:
         uint8_t rs1 = (b >> 15) & 0x1F, rs2 = (b >> 20) & 0x1F, f3 = (b >> 12) & 0x7;
         int32_t imm = ((static_cast<int32_t>(b) >> 25) << 5) | ((b >> 7) & 0x1F);
         switch (f3) {
-            case 0x0: return Instruction(SB{rs1, rs2, imm});
-            case 0x1: return Instruction(SH{rs1, rs2, imm});
-            case 0x2: return Instruction(SW{rs1, rs2, imm});
+            case 0x0: return Instruction(SB(rs1, rs2, imm));
+            case 0x1: return Instruction(SH(rs1, rs2, imm));
+            case 0x2: return Instruction(SW(rs1, rs2, imm));
         }
         throw IllegalInstruction32(b);
     }
@@ -164,12 +164,12 @@ private:
         int32_t imm = ((static_cast<int32_t>(b) >> 31) << 12) | (((b >> 7) & 1) << 11) |
                       (((b >> 25) & 0x3F) << 5) | (((b >> 8) & 0xF) << 1);
         switch (f3) {
-            case 0x0: return Instruction(BEQ{rs1, rs2, imm});
-            case 0x1: return Instruction(BNE{rs1, rs2, imm});
-            case 0x4: return Instruction(BLT{rs1, rs2, imm});
-            case 0x5: return Instruction(BGE{rs1, rs2, imm});
-            case 0x6: return Instruction(BLTU{rs1, rs2, imm});
-            case 0x7: return Instruction(BGEU{rs1, rs2, imm});
+            case 0x0: return Instruction(BEQ(rs1, rs2, imm));
+            case 0x1: return Instruction(BNE(rs1, rs2, imm));
+            case 0x4: return Instruction(BLT(rs1, rs2, imm));
+            case 0x5: return Instruction(BGE(rs1, rs2, imm));
+            case 0x6: return Instruction(BLTU(rs1, rs2, imm));
+            case 0x7: return Instruction(BGEU(rs1, rs2, imm));
         }
         throw IllegalInstruction32(b);
     }
@@ -177,20 +177,20 @@ private:
     Instruction decode_U(uint32_t b, bool is_lui) const {
         uint8_t rd = (b >> 7) & 0x1F;
         int32_t imm = static_cast<int32_t>(b & 0xFFFFF000);
-        return is_lui ? Instruction(LUI{rd, imm}) : Instruction(AUIPC{rd, imm});
+        return is_lui ? Instruction(LUI(rd, imm)) : Instruction(AUIPC(rd, imm));
     }
 
     Instruction decode_J(uint32_t b) const {
         uint8_t rd = (b >> 7) & 0x1F;
         int32_t imm = ((static_cast<int32_t>(b) >> 31) << 20) | (((b >> 12) & 0xFF) << 12) |
                       (((b >> 20) & 1) << 11) | (((b >> 21) & 0x3FF) << 1);
-        return Instruction(JAL{rd, imm});
+        return Instruction(JAL(rd, imm));
     }
 
     Instruction decode_I_jalr(uint32_t b) const {
         uint8_t rd = (b >> 7) & 0x1F, rs1 = (b >> 15) & 0x1F;
         int32_t imm = static_cast<int32_t>(b) >> 20;
-        return Instruction(JALR{rd, rs1, imm});
+        return Instruction(JALR(rd, rs1, imm));
     }
 
     Instruction decode_System(uint32_t b) const {
