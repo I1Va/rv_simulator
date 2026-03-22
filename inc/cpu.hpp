@@ -5,9 +5,12 @@
 #include <iomanip>
 #include <string>
 #include <vector>
-#include <instruction.hpp>
 #include <iostream>
-#include <memory.hpp>
+
+#include "memory.hpp"
+#include "decoder.hpp"
+#include "instruction.hpp"
+#include "RV32I.hpp"
 
 namespace rv
 {
@@ -21,22 +24,20 @@ public:
     virtual uint64_t pc() const = 0;
     virtual void dump() const = 0;
     virtual void execute(const Instruction &i, IMEM &m) = 0;
+    virtual Instruction fetch_and_decode(uint64_t addr, IMEM &mem) const = 0;
+
     // virtual void raise_exception(Exception e) = 0;
 };
 
 class CPU_RV32I : public ICPU {
     uint32_t pc_;
     std::vector<uint32_t> regs_;
-
-    const std::vector<std::string> abi_names_ = {
-        "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
-        "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
-        "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
-        "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
-    };
+    std::unique_ptr<IDecoder> decoder_;
 
 public:
-    CPU_RV32I(): pc_(0), regs_(32) {}
+    CPU_RV32I(): pc_(0), regs_(32) {
+        decoder_ = std::make_unique<Decoder_RV32I>();
+    }
 
     void set_pc(uint64_t pc) override {
         pc_ = static_cast<uint32_t> (pc);
@@ -44,6 +45,10 @@ public:
 
     uint64_t pc() const override {
         return pc_;
+    }
+
+    Instruction fetch_and_decode(uint64_t addr, IMEM &mem) const override {
+        return decoder_->fetch_and_decode(addr, mem);
     }
     
     uint64_t read_reg(uint8_t idx) const override {
@@ -63,7 +68,7 @@ public:
                 << std::dec << "\n";
 
         for (int i = 0; i < 32; ++i) {
-            std::string abi = "x" + std::to_string(i) + "/" + abi_names_[i];
+            std::string abi = "x" + std::to_string(i) + "/" + reg_names[i];
             
             std::cout << " ";
 

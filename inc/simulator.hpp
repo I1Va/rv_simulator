@@ -13,14 +13,11 @@ namespace rv
 class Simulator {
     std::unique_ptr<ICPU> cpu_;
     std::unique_ptr<IMEM> mem_;
-    std::unique_ptr<IDecoder> decoder_;
-
 public:
     Simulator(std::string_view isa_string) {
         if (isa_string == "rv32i") {
             cpu_ = std::make_unique<CPU_RV32I>();
             mem_ = std::make_unique<MEM32>();
-            decoder_ = std::make_unique<Decoder_RV32I>();
         } else {
             throw std::runtime_error("Unknown ISA configuration");
         }
@@ -119,8 +116,7 @@ public:
 
     void step() {
         try {
-            // move decoder logic into cpu
-            Instruction instruction = decoder_->fetch_and_decode(cpu_->pc(), *mem_.get()); // Перенести логику fetch, decode в cpu
+            Instruction instruction = cpu_->fetch_and_decode(cpu_->pc(), *mem_.get()); 
             cpu_dump();
         
             cpu_->execute(instruction, *mem_.get());
