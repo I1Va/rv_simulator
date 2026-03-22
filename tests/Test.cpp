@@ -6,7 +6,7 @@ static const char isa_str[] = "rv32i";
 
 static const rv::Parser::SegmentInfo DEFAULT_TEXT_SEGMENT = 
 {
-    .vaddr = 0,
+    .vaddr = 0x10000,
     .memsz = 128,
     .filesz = 128,
     .data = std::vector<uint8_t>(128),
@@ -17,7 +17,7 @@ static const rv::Parser::SegmentInfo DEFAULT_TEXT_SEGMENT =
 
 static const rv::Parser::SegmentInfo DEFAULT_DATA_SEGMENT = 
 {
-    .vaddr = 256,
+    .vaddr = 0x20000,
     .memsz = 128,
     .filesz = 128,
     .data = std::vector<uint8_t>(256),
@@ -213,7 +213,7 @@ TEST(UpperImmediate, AUIPC) {
 
 TEST(Memory, LoadStoreByte) {
     auto sim = create_sim();
-    uint32_t base_addr = 256;
+    uint32_t base_addr = DEFAULT_DATA_SEGMENT.vaddr;
     
     sim.write_reg(X5, 0xABCDEF88);
     sim.write_reg(X1, base_addr);
@@ -229,7 +229,7 @@ TEST(Memory, LoadStoreByte) {
 
 TEST(Memory, LoadStoreWord) {
     auto sim = create_sim();
-    uint32_t base_addr = 260;
+    uint32_t base_addr = DEFAULT_DATA_SEGMENT.vaddr + 10;
     
     sim.write_reg(X10, 0xDEADBEEF);
     sim.write_reg(X1, base_addr);
@@ -242,7 +242,7 @@ TEST(Memory, LoadStoreWord) {
 
 TEST(Memory, HalfWordLoadStore) {
     auto sim = create_sim();
-    uint32_t base_addr = 264;
+    uint32_t base_addr = DEFAULT_DATA_SEGMENT.vaddr + 41;
     
     sim.write_reg(X5, 0x8001); 
     sim.write_reg(X1, base_addr);

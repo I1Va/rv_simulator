@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <cstdint>
 
 namespace rv
 {
@@ -11,5 +12,7 @@ const static inline std::vector<std::string> reg_names = {
     "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
     "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
+
+const static inline uint32_t PAGE_SIZE = 0x1000;
 
 } // namespace rv
