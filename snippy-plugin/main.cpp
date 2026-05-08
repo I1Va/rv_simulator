@@ -1,9 +1,11 @@
 #include <cstdint>
 #include <cctype>
+#include <cinttypes>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <unistd.h>
 
-#include <iostream>
 #include <memory>
 #include <algorithm>
 #include <vector>
@@ -18,6 +20,7 @@ struct RVMState {
   RVMConfig config{};
   std::unique_ptr<rv::MEM32> mem;
   std::unique_ptr<rv::CPU_RV32I> cpu;
+  bool uses_fallback_memory_map = false;
 };
 
 static rv::Parser::SegmentInfo makeSegment(uint64_t start, uint64_t size,
@@ -47,6 +50,49 @@ static uint64_t regionHighEnd(uint64_t s1, uint64_t sz1, uint64_t s2,
   return std::max(s1 + sz1, s2 + sz2);
 }
 
+static bool instruction_trace_enabled() {
+  const char *v = std::getenv("SNIPPY_RV32_TRACE");
+  if (v == nullptr)
+    return true;
+  return v[0] != '\0' && v[0] != '0';
+}
+
+static constexpr uint64_t kFallbackRomStart = 0x1000;
+static constexpr uint64_t kFallbackRomSpan = 0x20000;
+
+static bool rvm_config_memory_plausible(uint64_t rom_st, uint64_t rom_sz,
+                                         uint64_t ram_st, uint64_t ram_sz) {
+  if (rom_sz == 0 && ram_sz == 0)
+    return false;
+  if (rom_sz != 0) {
+    if ((rom_st & 0xFFFu) != 0 || rom_st < kFallbackRomStart || rom_st > 0xFFFF0000u)
+      return false;
+    if (rom_sz < 0x1000u || rom_sz > 0x10000000u)
+      return false;
+  }
+  if (ram_sz != 0) {
+    if ((ram_st & 0xFFFu) != 0 || ram_st > 0xFFFF0000u)
+      return false;
+    if (ram_sz < 0x1000u || ram_sz > 0x10000000u)
+      return false;
+  }
+  return true;
+}
+
+static uint64_t resolveSnippetPC(const RVMState *state, uint64_t pc) {
+  if (state == nullptr)
+    return pc;
+  if (pc != 0)
+    return pc;
+  if (state->uses_fallback_memory_map)
+    return kFallbackRomStart;
+  if (state->config.RomSize > 0 &&
+      rvm_config_memory_plausible(state->config.RomStart, state->config.RomSize,
+                                  state->config.RamStart, state->config.RamSize))
+    return state->config.RomStart;
+  return kFallbackRomStart;
+}
+
 extern "C" {
 
 RVMState *rvm_modelCreate(const RVMConfig *config) {
@@ -66,26 +112,35 @@ RVMState *rvm_modelCreate(const RVMConfig *config) {
     const uint64_t ram_st = config->RamStart;
     const uint64_t ram_sz = config->RamSize;
 
-    if (rom_sz != 0 && ram_sz != 0 &&
-        contiguousRegions(rom_st, rom_sz, ram_st, ram_sz)) {
+    const bool plausible =
+        rvm_config_memory_plausible(rom_st, rom_sz, ram_st, ram_sz);
+
+    if (!plausible) {
+      state->uses_fallback_memory_map = true;
+      state->mem->add_segment(
+          makeSegment(kFallbackRomStart, kFallbackRomSpan, true, true, true));
+    } else if (rom_sz != 0 && ram_sz != 0 &&
+               contiguousRegions(rom_st, rom_sz, ram_st, ram_sz)) {
       const uint64_t low = regionLow(rom_st, ram_st);
       const uint64_t span = regionHighEnd(rom_st, rom_sz, ram_st, ram_sz) - low;
       state->mem->add_segment(makeSegment(low, span, true, true, true));
     } else {
       if (rom_sz != 0) {
         state->mem->add_segment(
-            makeSegment(rom_st, rom_sz, true, false, true));
+            makeSegment(rom_st, rom_sz, true, true, true));
       }
       if (ram_sz != 0) {
         state->mem->add_segment(
-            makeSegment(ram_st, ram_sz, true, true, false));
+            makeSegment(ram_st, ram_sz, true, true, true));
       }
     }
   } catch (...) {
     return nullptr;
   }
 
-  if (config->RomSize != 0) {
+  if (state->uses_fallback_memory_map) {
+    state->cpu->set_pc(kFallbackRomStart);
+  } else if (config->RomSize != 0) {
     state->cpu->set_pc(config->RomStart);
   } else if (config->RamSize != 0) {
     state->cpu->set_pc(config->RamStart);
@@ -96,7 +151,15 @@ RVMState *rvm_modelCreate(const RVMConfig *config) {
   return state.release();
 }
 
-void rvm_modelDestroy(RVMState *state) { delete state; }
+void rvm_modelDestroy(RVMState *state) {
+  if (state != nullptr && instruction_trace_enabled()) {
+    static const char kTraceEnd[] =
+        "#===Snippy RV32 plugin trace end===\n";
+    static_cast<void>(
+        write(STDOUT_FILENO, kTraceEnd, sizeof(kTraceEnd) - 1));
+  }
+  delete state;
+}
 
 const RVMConfig *rvm_getModelConfig(const RVMState *state) {
   if (state == nullptr) return nullptr;
@@ -108,16 +171,34 @@ void rvm_reservedAfterGetModelConfig(RVMState *state) {
 }
 
 void rvm_notifyExecutionModeBeforeSetPc(RVMState *state, uint64_t mode) {
-  (void)state;
   (void)mode;
+  if (state == nullptr || !state->cpu)
+    return;
+  if (state->cpu->pc() == 0)
+    state->cpu->set_pc(resolveSnippetPC(state, 0));
 }
 
 int rvm_executeInstr(RVMState *state) {
   if (state == nullptr || !state->cpu || !state->mem) return 1;
   try {
+    if (state->cpu->pc() == 0)
+      state->cpu->set_pc(resolveSnippetPC(state, 0));
+    const uint32_t pc0 = static_cast<uint32_t>(state->cpu->pc());
+    const bool trace = instruction_trace_enabled();
+    uint32_t word0 = 0;
+    if (trace)
+      word0 = state->mem->read_instr32(pc0);
     rv::Instruction instruction =
-        state->cpu->fetch_and_decode(state->cpu->pc(), *state->mem);
+        state->cpu->fetch_and_decode(pc0, *state->mem);
     state->cpu->execute(instruction, *state->mem);
+    if (trace) {
+      char buf[80];
+      const int n = std::snprintf(buf, sizeof(buf),
+                                 "[snippy-rv32] 0x%08" PRIx32 "  0x%08" PRIx32 "\n",
+                                 pc0, word0);
+      if (n > 0)
+        static_cast<void>(write(STDOUT_FILENO, buf, static_cast<size_t>(n)));
+    }
     return 0;
   } catch (...) {
     return 1;
@@ -146,7 +227,7 @@ uint64_t rvm_readPC(const RVMState *state) {
 
 void rvm_setPC(RVMState *state, uint64_t newPC) {
   if (state == nullptr || !state->cpu) return;
-  state->cpu->set_pc(newPC);
+  state->cpu->set_pc(resolveSnippetPC(state, newPC));
 }
 
 RVMRegT rvm_readXReg(const RVMState *state, RVMXReg reg) {
@@ -169,7 +250,7 @@ void rvm_setXReg(RVMState *state, RVMXReg reg, RVMRegT value) {
   uint32_t reg_idx = static_cast<uint32_t>(reg);
   
   if (reg_idx == 32) {
-      state->cpu->set_pc(value);
+      state->cpu->set_pc(resolveSnippetPC(state, value));
       return;
   }
   
@@ -221,7 +302,7 @@ void rvm_logMessage(const RVMState *state, const char *message) {
     return;
   if (out.back() != '\n')
     out.push_back('\n');
-  static_cast<void>(write(STDERR_FILENO, out.data(), out.size()));
+  static_cast<void>(write(STDOUT_FILENO, out.data(), out.size()));
 }
 
 int rvm_queryCallbackSupportPresent() { return 0; }

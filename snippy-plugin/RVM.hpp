@@ -172,7 +172,6 @@ RVMRegT rvm_readFReg(const RVMState *State, RVMFReg Reg);
 void rvm_setFReg(RVMState *State, RVMFReg Reg, RVMRegT Value);
 
 typedef enum {
-  // RISC-V privileged spec, tables 2.2 - 2.6
   RVM_CSR_FFLAGS = 0x001,
   RVM_CSR_FRM = 0x002,
   RVM_CSR_FCSR = 0x003,
@@ -187,7 +186,6 @@ typedef enum {
   RVM_CSR_MTVEC = 0x305,
   RVM_CSR_MCAUSE = 0x342,
 
-  // github.com/riscv/riscv-v-spec/blob/master/v-spec.adoc#vector-extension-programmers-model
   RVM_CSR_VSTART = 0x008,
   RVM_CSR_VXSAT = 0x009,
   RVM_CSR_VXRM = 0x00A,
