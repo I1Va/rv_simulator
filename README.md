@@ -81,7 +81,7 @@ LD_LIBRARY_PATH=./build/snippy-plugin \
   -Wno-error=non-reproducible-execution
 ```
 
-Use **`--object-type=exec`** so Snippy emits a **fully linked** ELF—the same kind of image it loads into the model. The default **`reloc`** mode produces a relocatable object plus a generated **`*.ld`** script;
+Use **`--object-type=exec`** so Snippy emits a **fully linked** ELF.
 
 #### Execution trace on stdout
 
