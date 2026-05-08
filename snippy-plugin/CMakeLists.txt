@@ -14,3 +14,19 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../inc
 )
+
+option(SANITIZE "Enable compiler sanitizers" OFF)
+
+if (MSVC)
+    add_compile_options(/W4 /WX /Od /d1noelide)
+else()
+    add_compile_options(
+        -Wall
+        -Wextra
+        -Werror
+        $<$<BOOL:${SANITIZE}>:-fsanitize=address,undefined>
+    )
+    add_link_options(
+        $<$<BOOL:${SANITIZE}>:-fsanitize=address,undefined>
+    )
+endif()

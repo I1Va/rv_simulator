@@ -205,7 +205,9 @@ public:
     }
 
     uint32_t read_instr32(uint64_t addr) override {
-        const Segment& segment = get_seg(addr, /*rwx:*/ true, false, false);
+        // Instruction fetch must require execute, like r-x segments from Snippy.
+        const Segment& segment = get_seg(static_cast<uint32_t>(addr), true, false,
+                                         true);
         
         uint64_t offset = addr - segment.tag * alignment_;
         if (offset + 4 > segment.data.size()) {

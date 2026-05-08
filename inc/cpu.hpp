@@ -70,11 +70,17 @@ public:
     }
     
     uint64_t read_reg(uint8_t idx) const override {
+        if (idx == 32)
+            return pc_;
         assert(idx < 32 && "Register index out of range!");
         return regs_[idx];
     }
 
     void write_reg(uint8_t idx, uint64_t val) override {
+        if (idx == 32) {
+            set_pc(val);
+            return;
+        }
         assert(idx < 32 && "Register index out of range!");
         if (idx == 0) return;
         regs_[idx] = static_cast<uint32_t>(val);

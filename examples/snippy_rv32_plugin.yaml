@@ -3,6 +3,8 @@ options:
   march: rv32i
   num-instrs: 10
   seed: 42
+  init-regs-in-elf: true
+  # llvm-snippy resolves relative to cwd; use freshly built libSnippyRV32.so here.
   model-plugin: libSnippyRV32.so
   reserved-regs-list: [ra, gp]
 

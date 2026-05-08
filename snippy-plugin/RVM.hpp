@@ -8,7 +8,7 @@ extern "C" {
 
 #define RVMAPI_ENTRY_POINT_SYMBOL RVMVTable
 #define RVMAPI_VERSION_SYMBOL RVMInterfaceVersion
-#define RVMAPI_CURRENT_INTERFACE_VERSION 1u
+#define RVMAPI_CURRENT_INTERFACE_VERSION 29u
 
 typedef uint32_t RVMRegT;
 
@@ -81,6 +81,9 @@ RVMState *rvm_modelCreate(const RVMConfig *config);
 void rvm_modelDestroy(RVMState *State);
 
 const RVMConfig *rvm_getModelConfig(const RVMState *State);
+
+void rvm_reservedAfterGetModelConfig(RVMState *State);
+void rvm_notifyExecutionModeBeforeSetPc(RVMState *State, uint64_t ModeOrFlags);
 
 int rvm_executeInstr(RVMState *State);
 
@@ -237,7 +240,7 @@ int rvm_readVReg(const RVMState *State, RVMVReg Reg, char *Data,
 int rvm_setVReg(RVMState *State, RVMVReg Reg, const char *Data,
                 size_t DataSize);
 
-void rvm_logMessage(const char *Message);
+void rvm_logMessage(const RVMState *State, const char *Message);
 
 int rvm_queryCallbackSupportPresent();
 
@@ -245,6 +248,8 @@ typedef void (*MemUpdateCallbackTy)(RVMCallbackHandler *, uint64_t Addr,
                                     const char *Data, size_t Size);
 typedef void (*XRegUpdateCallbackTy)(RVMCallbackHandler *, RVMXReg Reg,
                                      RVMRegT Value);
+typedef void (*CSRUpdateCallbackTy)(RVMCallbackHandler *, RVMCSR CSR,
+                                    uint64_t Value);
 typedef void (*FRegUpdateCallbackTy)(RVMCallbackHandler *, RVMFReg Reg,
                                      RVMRegT Value);
 typedef void (*VRegUpdateCallbackTy)(RVMCallbackHandler *, RVMVReg Reg,
@@ -267,6 +272,7 @@ struct RVMConfig {
   RVMCallbackHandler *CallbackHandler;
   MemUpdateCallbackTy MemUpdateCallback;
   XRegUpdateCallbackTy XRegUpdateCallback;
+  CSRUpdateCallbackTy CSRUpdateCallback;
   FRegUpdateCallbackTy FRegUpdateCallback;
   VRegUpdateCallbackTy VRegUpdateCallback;
   PCUpdateCallbackTy PCUpdateCallback;
@@ -277,7 +283,9 @@ struct RVMConfig {
 typedef RVMState *(*rvm_modelCreate_t)(const RVMConfig *);
 typedef void (*rvm_modelDestroy_t)(RVMState *);
 typedef const RVMConfig *(*rvm_getModelConfig_t)(const RVMState *);
+typedef void (*rvm_reservedAfterGetModelConfig_t)(RVMState *);
 typedef int (*rvm_executeInstr_t)(RVMState *);
+typedef void (*rvm_notifyExecutionMode_t)(RVMState *, uint64_t ModeOrFlags);
 typedef void (*rvm_readMem_t)(const RVMState *, uint64_t, size_t, char *);
 typedef void (*rvm_writeMem_t)(RVMState *, uint64_t, size_t, const char *);
 typedef uint64_t (*rvm_readPC_t)(const RVMState *);
@@ -290,7 +298,7 @@ typedef RVMRegT (*rvm_readCSRReg_t)(const RVMState *, unsigned);
 typedef void (*rvm_setCSRReg_t)(RVMState *, unsigned, RVMRegT);
 typedef int (*rvm_readVReg_t)(const RVMState *, RVMVReg, char *, size_t);
 typedef int (*rvm_setVReg_t)(RVMState *, RVMVReg, const char *, size_t);
-typedef void (*rvm_logMessage_t)(const char *);
+typedef void (*rvm_logMessage_t)(const RVMState *, const char *);
 typedef int (*rvm_queryCallbackSupportPresent_t)();
 
 #ifdef __cplusplus

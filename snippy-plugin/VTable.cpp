@@ -1,6 +1,12 @@
 #include "VTable.hpp"
 
-unsigned char RVMAPI_VERSION_SYMBOL = RVMAPI_CURRENT_INTERFACE_VERSION;
+#include <cstdint>
+
+extern "C" {
+
+uint32_t RVMAPI_VERSION_SYMBOL = RVMAPI_CURRENT_INTERFACE_VERSION;
+
+} // extern "C"
 
 extern const rvm::RVM_FunctionPointers RVMAPI_ENTRY_POINT_SYMBOL = {
     .modelCreate = &rvm_modelCreate,
@@ -8,10 +14,15 @@ extern const rvm::RVM_FunctionPointers RVMAPI_ENTRY_POINT_SYMBOL = {
 
     .getModelConfig = &rvm_getModelConfig,
 
+    .reservedAfterGetModelConfig = &rvm_reservedAfterGetModelConfig,
+
     .executeInstr = &rvm_executeInstr,
 
     .readMem = &rvm_readMem,
     .writeMem = &rvm_writeMem,
+
+    .notifyExecutionModeBeforeSetPc = &rvm_notifyExecutionModeBeforeSetPc,
+    .setPCStopModeAlias = &rvm_setPC,
 
     .readPC = &rvm_readPC,
     .setPC = &rvm_setPC,
