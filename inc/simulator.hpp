@@ -107,6 +107,7 @@ public:
     }
 
     void set_pc(const uint64_t pc) { cpu_->set_pc(pc); }
+    
     void add_segment
     (
         const Parser::SegmentInfo &segment_info
@@ -169,6 +170,7 @@ public:
     void write_reg(const uint64_t idx, const uint64_t value) {
         cpu_->write_reg(idx, value);
     }
+    
     uint64_t read_reg(const uint64_t idx) const {
         return cpu_->read_reg(idx);
     }

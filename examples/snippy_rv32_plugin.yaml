@@ -1,0 +1,25 @@
+options:
+  mtriple: riscv32-unknown-elf
+  march: rv32i
+  num-instrs: 10
+  seed: 42
+  model-plugin: libSnippyRV32.so
+  reserved-regs-list: [ra, gp]
+
+sections:
+  - name: text
+    VMA: 0x1000
+    SIZE: 0x10000
+    LMA: 0x1000
+    ACCESS: rx
+  - name: data
+    VMA: 0x11000
+    SIZE: 0x10000
+    LMA: 0x11000
+    ACCESS: rw
+
+histogram:
+  - [ADD, 1.0]
+  - [ADDI, 1.0]
+  - [LW, 1.0]
+  - [SW, 1.0]
