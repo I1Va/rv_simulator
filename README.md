@@ -48,6 +48,59 @@ Run an ELF file by specifying its path.
 
 ---
 
+### LLVM Snippy (RV32 model plugin)
+
+The same CMake build produces **`libSnippyRV32.so`**, a shared library that implements LLVM Snippy’s **RISC-V model**.
+
+#### Build the plugin
+
+```bash
+cmake -S . -B build
+cmake --build build --target SnippyRV32
+```
+
+The artifact is **`build/snippy-plugin/libSnippyRV32.so`**.
+
+#### Run `llvm-snippy` with the plugin
+
+1. Put **`llvm-snippy`** and **`libSnippyRV32.so`** in the same directory *or* pass an absolute path to the plugin in your YAML / CLI.
+2. Ensure the dynamic loader can find the `.so`:
+
+```bash
+export LD_LIBRARY_PATH=/path/to/rv_simulator/build/snippy-plugin:$LD_LIBRARY_PATH
+```
+
+A minimal layout file is **`examples/snippy/snippy_rv32_plugin.yaml`**. It sets **`model-plugin: libSnippyRV32.so`** 
+
+Typical invocation:
+
+```bash
+LD_LIBRARY_PATH=./build/snippy-plugin \
+  llvm-snippy examples/snippy/snippy_rv32_plugin.yaml \
+  --object-type=exec \
+  -Wno-error=non-reproducible-execution
+```
+
+Use **`--object-type=exec`** so Snippy emits a **fully linked** ELF—the same kind of image it loads into the model. The default **`reloc`** mode produces a relocatable object plus a generated **`*.ld`** script;
+
+#### Execution trace on stdout
+
+While the model runs, the plugin prints one line per retired instruction:
+
+```text
+[snippy-rv32] 0x00001000  0xf2195137
+```
+
+That trace is **enabled by default**. To turn it off:
+
+```bash
+SNIPPY_RV32_TRACE=0 LD_LIBRARY_PATH=./build/snippy-plugin llvm-snippy ...
+```
+
+Snippy also supports **`--trace-log=<file>`** for its own execution-log redirection.
+
+---
+
 ### Command Line Options
 
 | Option | Description |
