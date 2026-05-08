@@ -39,8 +39,7 @@ public:
     virtual void execute(const Instruction &i, IMEM &m) = 0;
     virtual Instruction fetch_and_decode(uint64_t addr, IMEM &mem) const = 0;
     virtual bool is_running() const = 0;
-
-    // virtual void raise_exception(Exception e) = 0;
+    virtual ~ICPU() = default;
 };
 
 class CPU_RV32I : public ICPU {
@@ -83,7 +82,7 @@ public:
 
     bool is_running() const override { return is_running_; }
 
-    void dump() const {
+    void dump() const override {
         std::cout << " pc       " 
                 << std::hex << std::setw(8) << std::setfill('0') << pc_ 
                 << std::dec << "\n";

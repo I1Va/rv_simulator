@@ -3,9 +3,9 @@ import os
 import subprocess
 import glob
 
-def run_program(program_path, input_file, output_file):
+def run_program(program_path, input_file, flags, output_file):
     result = subprocess.run(
-        [program_path],
+        [program_path, input_file] + flags,
         input="",
         text=True,
         capture_output=True,
@@ -48,7 +48,7 @@ def main():
             print("SKIP (no .out file)")
             continue
         
-        passed, actual, expected = run_program(program_path, test_in, test_out)
+        passed, actual, expected = run_program(program_path, test_in, ["--disable-logs"], test_out)
         
         if passed:
             print(f'PASSED {test_name}')

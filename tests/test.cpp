@@ -2,8 +2,6 @@
 
 #include "simulator.hpp"
 
-static const char isa_str[] = "rv32i";
-
 static const rv::Config config = 
 {
     .isa = "rv32i",
