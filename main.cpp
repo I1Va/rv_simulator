@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     app.add_option("--final_state,-f", config.final_state_path, "Path to final PC and registers file");
 
     app.add_flag("--interactive", config.interactive, "Enable interactive mode");
-    app.add_flag("--disable-logs", config.logs_disabled, "Enable interactive mode");
+    app.add_flag("--disable-logs", config.logs_disabled, "Disable logs");
 
     try {
         app.parse(argc, argv);
@@ -69,7 +69,11 @@ int main(int argc, char* argv[]) {
         if (config.interactive) {
             sim.interactive_mode();
         } else {
-            sim.run(config.steps);
+            if (config.steps < 0) {
+                sim.continuous_run();
+            } else {
+                sim.run(config.steps);
+            }
         }
 
         if (!config.final_state_path.empty()) {

@@ -118,6 +118,12 @@ public:
         }
     }
 
+    void continuous_run() {
+        while (cpu_->is_running()) {
+            step();
+        }
+    }
+
     void step() {
         if (!cpu_->is_running()) {
             if (!config_.logs_disabled) std::cout << "[SIMULATOR] no program is running\n";
