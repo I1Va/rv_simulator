@@ -206,7 +206,7 @@ TEST(Arithmetic, ZeroRegisterProtection) {
 
 TEST(UpperImmediate, LUI) {
     auto sim = create_sim();
-    sim.execute_instr(rv::LUI(X10, 0x12345));
+    sim.execute_instr(rv::LUI(X10, 0x12345000));
     EXPECT_EQ(sim.read_reg(X10), 0x12345000);
 }
 

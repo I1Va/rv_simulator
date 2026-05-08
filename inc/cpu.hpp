@@ -253,7 +253,7 @@ public:
 
             // --- Upper Immediates & Pseudo ---
             case InstructionType::LUI:
-                write_reg(i.rd, (uint32_t)i.imm << 12);
+                write_reg(i.rd, (uint32_t)i.imm);
                 set_pc(pc() + 4);
                 break;
             case InstructionType::AUIPC:
@@ -348,6 +348,7 @@ private:
         uint64_t fd      = read_reg(Reg::a0);
         uint64_t vaddr   = read_reg(Reg::a1);
         uint64_t total_n = read_reg(Reg::a2);
+
         uint64_t total_written = 0;
         while (total_written < total_n) {
             uint64_t chunk_size = std::min(total_n - total_written, sizeof(buffer_) / sizeof(uint8_t));
@@ -366,7 +367,7 @@ private:
             );
 
             if (ret < 0) {
-                write_reg(Reg::a0, static_cast<uint64_t>(ret)); // Return error code
+                write_reg(Reg::a0, static_cast<uint64_t>(ret));
                 return;
             }
             

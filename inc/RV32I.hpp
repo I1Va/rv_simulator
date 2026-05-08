@@ -36,7 +36,7 @@ struct Config {
     std::string final_state_path = "";
     bool interactive = false;
     bool logs_disabled = false;
-    int steps = 10;
+    int steps = -1;
 };
 
 } // namespace rv
